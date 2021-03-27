@@ -1,14 +1,11 @@
 [package]
-name = "rust_opengl"
+name = "helper"
 version = "0.1.0"
-authors = ["Barogthor"]
+authors = ["Barogthor <f.thery3103@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-helper = { path = "./helper" }
-glium = "0.29.0"
-winit = "0.24.0"
-nalgebra-glm = "0.11.0"
-rusttype = "0.9.2"
+rand = "0.8.3"
+image = "0.23.14"
