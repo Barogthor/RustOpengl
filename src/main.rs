@@ -7,9 +7,9 @@ use winit::event_loop::ControlFlow;
 use winit::window::Fullscreen;
 
 use helper::{Colors, load_glsl};
+use rust_opengl::{load_png_texture, Vertex};
 use rust_opengl::binding::Binding;
 use rust_opengl::input::{Gesture, Input};
-use rust_opengl::Vertex;
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
 pub type VertexBuffer = glium::VertexBuffer<Vertex>;
@@ -24,18 +24,21 @@ fn main() {
     let binding = Binding::create();
     let mut fullscreen = false;
     let background_color = Colors::BLACK;
-    let triangle = [
-        Vertex::new(-0.5, -0.5, 0.0),
-        Vertex::new(0.5, -0.5, 0.0),
-        Vertex::new(0.0, 0.5, 0.0)
+    let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
+    let square = [
+        Vertex::new(0.5, 0.5, 0.0, [1.0, 1.0]),
+        Vertex::new(0.5, -0.5, 0.0, [1.0, 0.0]),
+        Vertex::new(-0.5, -0.5, 0.0, [0.0, 0.0]),
+        Vertex::new(-0.5, 0.5, 0.0, [0.0, 1.0])
     ];
-    let triangle_vertex_src = load_glsl("resources/shaders/sample.vs.glsl");
-    let triangle_fragment_src = load_glsl("resources/shaders/sample.fs.glsl");
-    let triangle_program =
-        glium::Program::from_source(&display, &triangle_vertex_src, &triangle_fragment_src, None)
+    let indexes = [0, 1, 2, 2, 3, 0];
+    let sample_vertex_src = load_glsl("resources/shaders/sample_tex.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/sample_tex.fs.glsl");
+    let sample_program =
+        glium::Program::from_source(&display, &sample_vertex_src, &sample_fragment_src, None)
             .unwrap();
-    let triangle_vertexes = VertexBuffer::new(&display, &triangle).unwrap();
-    let triangle_indexes = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    let triangle_vertexes = VertexBuffer::new(&display, &square).unwrap();
+    let triangle_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indexes).unwrap();
     let mut uniform_color = Colors::MAGENTA;
 
     event_loop.run(move |event, _, control_flow| match event {
@@ -56,9 +59,10 @@ fn main() {
             frame.clear_color_and_depth(background_color.into(), 1.);
             let color: [f32; 3] = uniform_color.into();
             let uniforms = uniform! {
-                uColor: color
+                uColor: color,
+                tex: &bricks_tex
             };
-            frame.draw(&triangle_vertexes, &triangle_indexes, &triangle_program, &uniforms, &Default::default()).unwrap();
+            frame.draw(&triangle_vertexes, &triangle_indexes, &sample_program, &uniforms, &Default::default()).unwrap();
             frame.finish().unwrap()
         }
         Event::RedrawEventsCleared => {
