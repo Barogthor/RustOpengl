@@ -1,9 +1,8 @@
-
 use rand::Rng;
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Clone, PartialOrd, PartialEq, Debug)]
+#[derive(Clone, PartialOrd, PartialEq, Debug, Copy)]
 pub enum Colors {
     RED,
     BLUE,
