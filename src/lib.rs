@@ -1,6 +1,3 @@
-use glium::uniforms::{AsUniformValue, UniformValue};
-
-use helper::Colors;
 
 pub mod input;
 pub mod binding;

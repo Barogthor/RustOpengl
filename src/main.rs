@@ -2,7 +2,6 @@
 extern crate glium;
 
 use glium::{Display, glutin, Surface};
-use glium::uniforms::UniformValue;
 use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 use winit::window::Fullscreen;
@@ -24,7 +23,7 @@ fn main() {
     let mut input = Input::create();
     let binding = Binding::create();
     let mut fullscreen = false;
-    let mut background_color = Colors::BLACK;
+    let background_color = Colors::BLACK;
     let triangle = [
         Vertex::new(-0.5, -0.5, 0.0),
         Vertex::new(0.5, -0.5, 0.0),
