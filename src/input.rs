@@ -113,7 +113,7 @@ impl Input {
                     0.0
                 },
             ),
-            Analog2d::NoAnalog2d | _ => glm::vec2(0., 0.),
+            Analog2d::NoAnalog2d => glm::vec2(0., 0.),
         }
     }
 
@@ -204,7 +204,7 @@ impl Input {
     }
 
     pub fn create() -> Self {
-        (Self {
+        Self {
             mouse_buttons: [InputState::Released(0); MAX_MOUSE_BUTTONS],
             key_buttons: [InputState::Released(0); MAX_KEY_BUTTONS],
             mouse_wheel_dir: glm::vec2(0.0, 0.0),
@@ -213,7 +213,7 @@ impl Input {
             current_index: 1,
             mouse_grabbed: false,
             new_mouse_grabbed: false,
-        })
+        }
     }
 
     pub fn increment_index(&mut self) {

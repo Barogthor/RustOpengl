@@ -3,11 +3,14 @@ use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 use winit::window::Fullscreen;
 
-use helper::Colors;
+use helper::{Colors, load_glsl};
 use rust_opengl::binding::Binding;
 use rust_opengl::input::{Gesture, Input};
+use rust_opengl::Vertex;
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
+pub type VertexBuffer = glium::VertexBuffer<Vertex>;
+pub type IndexBuffer = glium::IndexBuffer<u16>;
 
 fn main() {
     let event_loop: LoopType = LoopType::new();
@@ -18,6 +21,19 @@ fn main() {
     let binding = Binding::create();
     let mut fullscreen = false;
     let mut background_color = Colors::BLACK;
+    let triangle = [
+        Vertex::new(-0.5, -0.5, 0.0),
+        Vertex::new(0.5, -0.5, 0.0),
+        Vertex::new(0.0, 0.5, 0.0)
+    ];
+    let triangle_vertex_src = load_glsl("resources/shaders/sample.vs.glsl");
+    let triangle_fragment_src = load_glsl("resources/shaders/sample.fs.glsl");
+    let triangle_program =
+        glium::Program::from_source(&display, &triangle_vertex_src, &triangle_fragment_src, None)
+            .unwrap();
+    let triangle_vertexes = VertexBuffer::new(&display, &triangle).unwrap();
+    let triangle_indexes = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
             StartCause::ResumeTimeReached { .. } => {}
@@ -34,6 +50,7 @@ fn main() {
         Event::RedrawRequested(_) => {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
+            frame.draw(&triangle_vertexes, &triangle_indexes, &triangle_program, &glium::uniforms::EmptyUniforms, &Default::default()).unwrap();
             frame.finish().unwrap()
         }
         Event::RedrawEventsCleared => {
