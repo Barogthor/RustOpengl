@@ -1,4 +1,8 @@
+#[macro_use]
+extern crate glium;
+
 use glium::{Display, glutin, Surface};
+use glium::uniforms::UniformValue;
 use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 use winit::window::Fullscreen;
@@ -33,6 +37,7 @@ fn main() {
             .unwrap();
     let triangle_vertexes = VertexBuffer::new(&display, &triangle).unwrap();
     let triangle_indexes = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
+    let mut uniform_color = Colors::MAGENTA;
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
@@ -43,14 +48,18 @@ fn main() {
         },
         Event::MainEventsCleared => {
             if input.poll_gesture(&binding.swap_color) {
-                background_color = Colors::random();
+                uniform_color = Colors::random();
             }
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
-            frame.draw(&triangle_vertexes, &triangle_indexes, &triangle_program, &glium::uniforms::EmptyUniforms, &Default::default()).unwrap();
+            let color: [f32; 3] = uniform_color.into();
+            let uniforms = uniform! {
+                uColor: color
+            };
+            frame.draw(&triangle_vertexes, &triangle_indexes, &triangle_program, &uniforms, &Default::default()).unwrap();
             frame.finish().unwrap()
         }
         Event::RedrawEventsCleared => {

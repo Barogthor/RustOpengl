@@ -70,6 +70,12 @@ impl From<Colors> for [f32; 3] {
         [color.0 as f32 / 255., color.1 as f32 / 255., color.2 as f32 / 255.]
     }
 }
+impl From<Colors> for [f32; 4] {
+    fn from(color: Colors) -> Self {
+        let color = color.to_tuple();
+        [color.0 as f32 / 255., color.1 as f32 / 255., color.2 as f32 / 255., color.3 as f32 / 255.]
+    }
+}
 
 
 pub fn load_glsl(path: &str) -> String {
