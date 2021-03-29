@@ -6,7 +6,7 @@ use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 use winit::window::Fullscreen;
 
-use helper::{Colors, load_glsl};
+use helper::{Colors, get_camera, get_perspective, load_glsl};
 use rust_opengl::{load_png_texture, Vertex};
 use rust_opengl::binding::Binding;
 use rust_opengl::input::{Gesture, Input};
@@ -40,6 +40,8 @@ fn main() {
     let triangle_vertexes = VertexBuffer::new(&display, &square).unwrap();
     let triangle_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indexes).unwrap();
     let mut uniform_color = Colors::MAGENTA;
+    let vp = get_perspective(display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1) * get_camera();
+    let pre_vp: [[f32; 4]; 4] = vp.into();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
@@ -60,7 +62,8 @@ fn main() {
             let color: [f32; 3] = uniform_color.into();
             let uniforms = uniform! {
                 uColor: color,
-                tex: &bricks_tex
+                tex: &bricks_tex,
+                vp: pre_vp
             };
             frame.draw(&triangle_vertexes, &triangle_indexes, &sample_program, &uniforms, &Default::default()).unwrap();
             frame.finish().unwrap()

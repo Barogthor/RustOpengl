@@ -1,6 +1,7 @@
 use rand::Rng;
 use std::fs::File;
 use std::io::Read;
+pub use nalgebra_glm as glm;
 
 #[derive(Clone, PartialOrd, PartialEq, Debug, Copy)]
 pub enum Colors {
@@ -88,3 +89,20 @@ pub fn load_glsl(path: &str) -> String {
 }
 
 
+pub fn get_perspective(width: u32, height: u32) -> glm::Mat4 {
+    glm::perspective(
+        width as f32 / height as f32,
+        std::f64::consts::FRAC_PI_4 as f32,
+        0.1,
+        100.0,
+    )
+}
+
+pub fn get_camera() -> glm::Mat4 {
+    glm::look_at(
+        // &glm::vec3(10.0, 4.0, -1.0),
+        &glm::vec3(2.0, 0.0, -2.0),
+        &glm::vec3(0.0, 0.0, 0.0),
+        &glm::vec3(0.0, 1.0, 0.0f32),
+    )
+}

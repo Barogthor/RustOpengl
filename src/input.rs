@@ -1,7 +1,8 @@
 use glium::{Display, glutin};
-use nalgebra_glm as glm;
 use winit::event::{DeviceEvent, VirtualKeyCode};
 use winit::event::{Event, MouseButton};
+
+use helper::glm;
 
 use crate::input::InputState::{Pressed, Released};
 
