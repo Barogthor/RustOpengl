@@ -1,11 +1,12 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use glium::Display;
+use glium::{Display, DrawParameters};
 use image::RgbaImage;
 
 pub mod input;
 pub mod binding;
+pub mod geometry;
 
 pub type Vertex = VertexTex;
 
@@ -78,4 +79,17 @@ pub fn load_jpeg_texture(
         .unwrap()
         .to_rgba8();
     load_texture(image, display)
+}
+
+pub fn draw_params() -> DrawParameters<'static> {
+    use glium::{Depth, DepthTest, BackfaceCullingMode};
+    DrawParameters {
+        depth: Depth {
+            test: DepthTest::IfLess,
+            write: true,
+            ..Depth::default()
+        },
+        backface_culling: BackfaceCullingMode::CullClockwise,
+        ..DrawParameters::default()
+    }
 }

@@ -3,6 +3,8 @@ use std::fs::File;
 use std::io::Read;
 pub use nalgebra_glm as glm;
 
+pub type RawMat4 = [[f32; 4]; 4];
+
 #[derive(Clone, PartialOrd, PartialEq, Debug, Copy)]
 pub enum Colors {
     RED,
@@ -105,4 +107,43 @@ pub fn get_camera() -> glm::Mat4 {
         &glm::vec3(0.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0f32),
     )
+}
+
+pub struct Transform {
+    transform: glm::Mat4,
+}
+
+impl Transform {
+    pub fn new() -> Self {
+        Self {
+            transform: glm::identity(),
+        }
+    }
+
+    pub fn scale(&mut self, x: f32, y: f32, z: f32){
+        self.transform = glm::scale(&self.transform, &glm::vec3(x, y, z));
+    }
+
+    pub fn move_to(&mut self, _x: f32, _y: f32, _z: f32) {
+        unimplemented!()
+    }
+
+    pub fn translate(&mut self, x: f32, y: f32, z: f32){
+        self.transform = glm::translate(&self.transform, &glm::vec3(x, y, z));
+    }
+
+    pub fn rotate(&mut self, angle: f32, axis: &glm::Vec3) {
+        self.transform = glm::rotate(&self.transform, angle, axis);
+    }
+
+    #[inline]
+    pub fn get(&self) -> &glm::Mat4 {
+        &self.transform
+    }
+}
+
+impl From<&Transform> for [[f32; 4]; 4] {
+    fn from(v: &Transform) -> Self {
+        v.transform.clone().into()
+    }
 }
