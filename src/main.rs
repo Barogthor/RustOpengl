@@ -44,7 +44,7 @@ fn main() {
     let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
     let cube_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &cube_indexes()).unwrap();
     let mut cube_transform = Transform::new();
-    cube_transform.translate(2., -1., -1.);
+    cube_transform.translate(-2., -1., -1.);
 
     let mut uniform_color = Colors::MAGENTA;
     let vp = get_perspective(display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1) * get_camera();
