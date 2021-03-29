@@ -1,13 +1,12 @@
 #[macro_use]
 extern crate glium;
 
-use glium::{Display, glutin, Surface};
+use glium::{glutin, Surface};
 use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
-use winit::window::Fullscreen;
 
 use helper::{Colors, get_camera, get_perspective, load_glsl, RawMat4, Transform};
-use rust_opengl::{draw_params, load_png_texture, Vertex};
+use rust_opengl::{draw_params, load_png_texture, set_fullscreen, Vertex};
 use rust_opengl::binding::Binding;
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
 use rust_opengl::input::{Gesture, Input};
@@ -99,22 +98,4 @@ fn main() {
         }
         _ => input.update(&display, &event),
     });
-}
-
-fn set_fullscreen(display: &Display, fullscreen: &mut bool) {
-    if *fullscreen {
-        display.gl_window().window().set_fullscreen(None);
-        *fullscreen = false;
-    } else {
-        let monitor_handle = display
-            .gl_window()
-            .window()
-            .available_monitors()
-            .next()
-            .unwrap();
-        let fs = Fullscreen::Borderless(Some(monitor_handle));
-        display.gl_window().window().set_fullscreen(Some(fs));
-
-        *fullscreen = true;
-    }
 }

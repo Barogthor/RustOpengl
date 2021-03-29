@@ -103,7 +103,7 @@ pub fn get_perspective(width: u32, height: u32) -> glm::Mat4 {
 pub fn get_camera() -> glm::Mat4 {
     glm::look_at(
         // &glm::vec3(10.0, 4.0, -1.0),
-        &glm::vec3(2.0, 0.0, -2.0),
+        &glm::vec3(2.0, 2.0, -2.0),
         &glm::vec3(0.0, 0.0, 0.0),
         &glm::vec3(0.0, 1.0, 0.0f32),
     )

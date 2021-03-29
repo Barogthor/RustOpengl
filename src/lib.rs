@@ -3,6 +3,7 @@ use std::io::BufReader;
 
 use glium::{Display, DrawParameters};
 use image::RgbaImage;
+use winit::window::Fullscreen;
 
 pub mod input;
 pub mod binding;
@@ -79,6 +80,24 @@ pub fn load_jpeg_texture(
         .unwrap()
         .to_rgba8();
     load_texture(image, display)
+}
+
+pub fn set_fullscreen(display: &Display, fullscreen: &mut bool) {
+    if *fullscreen {
+        display.gl_window().window().set_fullscreen(None);
+        *fullscreen = false;
+    } else {
+        let monitor_handle = display
+            .gl_window()
+            .window()
+            .available_monitors()
+            .next()
+            .unwrap();
+        let fs = Fullscreen::Borderless(Some(monitor_handle));
+        display.gl_window().window().set_fullscreen(Some(fs));
+
+        *fullscreen = true;
+    }
 }
 
 pub fn draw_params() -> DrawParameters<'static> {
