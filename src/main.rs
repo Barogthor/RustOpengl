@@ -1,11 +1,14 @@
 #[macro_use]
 extern crate glium;
 
+use std::time::Instant;
+
 use glium::{glutin, Surface};
 use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 
 use helper::{Colors, get_camera, get_perspective, load_glsl, RawMat4, Transform};
+use helper::glm::{look_at, Mat4, normalize, vec3};
 use rust_opengl::{draw_params, load_png_texture, set_fullscreen, Vertex};
 use rust_opengl::binding::Binding;
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
@@ -47,10 +50,12 @@ fn main() {
     cube_transform.translate(-2., -1., -1.);
 
     let mut uniform_color = Colors::MAGENTA;
-    let vp = get_perspective(display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1) * get_camera();
-    let pre_vp: [[f32; 4]; 4] = vp.into();
+    let mut camera = get_camera();
+    let perspective = get_perspective(display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1);
+    let mut vp = &perspective * &camera;
+    let mut pre_vp: [[f32; 4]; 4] = vp.into();
 
-
+    let before_run = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
             StartCause::ResumeTimeReached { .. } => {}
@@ -62,6 +67,8 @@ fn main() {
             if input.poll_gesture(&binding.swap_color) {
                 uniform_color = Colors::random();
             }
+            rotate_camera_around_scene(&mut camera, &before_run);
+            pre_vp = (&perspective * &camera).into();
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
@@ -98,4 +105,14 @@ fn main() {
         }
         _ => input.update(&display, &event),
     });
+}
+
+fn rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
+    let radius = 5.0;
+    let delta = Instant::now().duration_since(run_start.clone()).as_secs_f32();
+    let cam_x = delta.sin() * radius;
+    let cam_z = delta.cos() * radius;
+    *camera = look_at(&vec3(cam_x, 2.0, cam_z),
+                      &vec3(0.0, 0.0, 0.0),
+                      &vec3(0.0, 1.0, 0.0f32));
 }
