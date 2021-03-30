@@ -2,6 +2,7 @@ use rand::Rng;
 use std::fs::File;
 use std::io::Read;
 pub use nalgebra_glm as glm;
+use crate::glm::Mat4;
 
 pub type RawMat4 = [[f32; 4]; 4];
 
@@ -100,11 +101,34 @@ pub fn get_perspective(width: u32, height: u32) -> glm::Mat4 {
     )
 }
 
+pub struct CameraSystem {
+    pub pos: glm::Vec3,
+    pub front: glm::Vec3,
+    pub up: glm::Vec3
+}
+
+impl Default for CameraSystem {
+    fn default() -> Self {
+        Self {
+            pos: glm::vec3(0.0, 0.0, -3.0),
+            front: glm::vec3(0.0, 0.0, 1.0),
+            up: glm::vec3(0.0, 1.0, 0.0f32),
+        }
+    }
+}
+impl From<&CameraSystem> for Mat4{
+
+    fn from(cam: &CameraSystem) -> Self {
+        glm::look_at(&cam.pos, &(&cam.pos + &cam.front), &cam.up)
+    }
+}
+
+
 pub fn get_camera() -> glm::Mat4 {
     glm::look_at(
         // &glm::vec3(10.0, 4.0, -1.0),
-        &glm::vec3(2.0, 2.0, -2.0),
-        &glm::vec3(0.0, 0.0, 0.0),
+        &glm::vec3(0.0, 0.0, 3.0),
+        &glm::vec3(0.0, 0.0, 2.0),
         &glm::vec3(0.0, 1.0, 0.0f32),
     )
 }
