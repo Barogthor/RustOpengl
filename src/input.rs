@@ -29,6 +29,10 @@ pub enum Analog2d {
         sensitivity: Sensitivity,
     },
 
+    MouseWheel {
+        sensitivity: Sensitivity,
+    },
+
     Gestures {
         x_positive: Gesture,
         x_negative: Gesture,
@@ -114,6 +118,7 @@ impl Input {
                     0.0
                 },
             ),
+            Analog2d::MouseWheel { sensitivity } => { (&self.mouse_wheel_dir) * sensitivity }
             Analog2d::NoAnalog2d => glm::vec2(0., 0.),
         }
     }
@@ -220,6 +225,7 @@ impl Input {
     pub fn tick_reset(&mut self) {
         self.current_index += 1;
         self.mouse_rel = glm::vec2(0.0, 0.0);
+        self.mouse_wheel_dir = glm::vec2(0.0, 0.0);
     }
 }
 

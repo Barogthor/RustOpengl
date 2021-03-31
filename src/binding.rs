@@ -9,6 +9,7 @@ pub struct Binding {
     pub jump: Gesture,
     pub fall: Gesture,
     pub fullscreen: Gesture,
+    pub scroll: Analog2d,
     pub toggle_mouse: Gesture,
     pub swap_color: Gesture,
 }
@@ -40,6 +41,7 @@ impl Binding {
             jump: Gesture::KeyHold(Key::Space),
             fall: Gesture::KeyHold(Key::C),
             fullscreen: Gesture::KeyTrigger(Key::F),
+            scroll: Analog2d::MouseWheel { sensitivity: 0.030 },
             toggle_mouse: Gesture::ButtonHold(MouseButton::Right),
             swap_color: Gesture::KeyTrigger(Key::R),
         }

@@ -3,13 +3,13 @@ extern crate glium;
 
 use std::time::Instant;
 
-use glium::{Display, glutin, Surface};
-use winit::dpi::PhysicalPosition;
+use glium::{glutin, Surface};
+use winit::dpi::{PhysicalPosition, PhysicalSize, Size};
 use winit::event::{Event, StartCause};
 use winit::event_loop::ControlFlow;
 
-use helper::{CameraSystem, Colors, get_perspective, load_glsl, RawMat4, Transform, TransformBuilder};
-use helper::glm::{cross, look_at, Mat4, normalize, vec2, vec3};
+use helper::{CameraSystem, Colors, load_glsl, Perspective, RawMat4, Transform, TransformBuilder};
+use helper::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{draw_params, load_png_texture, set_fullscreen, Vertex};
 use rust_opengl::binding::Binding;
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
@@ -21,9 +21,18 @@ pub type IndexBuffer = glium::IndexBuffer<u16>;
 
 const CAMERA_SPEED: f32 = 0.25;
 const PITCH_MAX: f32 = 1.55334f32;
+const WIDTH: f32 = 1024f32;
+const HEIGHT: f32 = 768f32;
+const FOV_MIN: f32 = 0.0174533f32;
+const FOV_MAX: f32 = 0.785398f32;
 
-struct MousePos;
+// compared € [to_compare - epsilon; to_compare + epsilon]
+#[inline]
+fn float_eq(value: f32, compared: f32, epsilon: f32) -> bool {
+    (value - compared).abs() < epsilon
+}
 
+#[inline]
 fn to_radians(degree: f32) -> f32 {
     degree.to_radians()
 }
@@ -35,7 +44,9 @@ fn main() {
     let custom_axis = vec3(1.0, 0.3, 0.5f32);
     let draw_params = draw_params();
     let event_loop: LoopType = LoopType::new();
-    let wb = glutin::window::WindowBuilder::new().with_title("3D Playground");
+    let wb = glutin::window::WindowBuilder::new()
+        .with_title("3D Playground")
+        .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
     let mut input = Input::create();
@@ -74,11 +85,10 @@ fn main() {
     ];
 
     let mut uniform_color = Colors::MAGENTA;
-    let mut camera_system = CameraSystem::default();
-    let mut camera = camera_system.view();
+    let mut camera = CameraSystem::default();
     let (mut w, mut h) = (display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1);
-    let perspective = get_perspective(w, h);
-    let vp = &perspective * &camera;
+    let mut perspective = Perspective::default();
+    let vp = perspective.get() * &camera.view();
     let mut pre_vp: RawMat4 = vp.into();
 
     let (mut yaw, mut pitch) = (0., PITCH_MAX);
@@ -100,7 +110,7 @@ fn main() {
 
                 w = display.get_framebuffer_dimensions().0;
                 h = display.get_framebuffer_dimensions().1;
-                window.set_cursor_position(PhysicalPosition::new(w / 2, h / 2));
+                window.set_cursor_position(PhysicalPosition::new(w / 2, h / 2)).unwrap();
                 yaw += mouse.x;
                 pitch += mouse.y;
                 if pitch > PITCH_MAX {
@@ -114,7 +124,16 @@ fn main() {
                     pitch.sin(),
                     yaw.sin() * pitch.cos(),
                 );
-                camera_system.front = direction.normalize();
+                camera.front = direction.normalize();
+            }
+            let step = input.poll_analog2d(&binding.scroll);
+            if !float_eq(step.y, 0.0, 1e-3) {
+                perspective.fov -= step.y;
+                if perspective.fov < FOV_MIN {
+                    perspective.fov = FOV_MIN;
+                } else if perspective.fov > FOV_MAX {
+                    perspective.fov = FOV_MAX;
+                }
             }
 
             if input.poll_gesture(&binding.swap_color) {
@@ -122,14 +141,13 @@ fn main() {
             }
             let step = input.poll_analog2d(&binding.movement);
             if step.y != 0. {
-                camera_system.pos += camera_system.front * step.y * CAMERA_SPEED;
+                camera.pos += camera.front * step.y * CAMERA_SPEED;
             }
             if step.x != 0. {
-                camera_system.pos += normalize(&cross(&camera_system.front, &camera_system.up)) * step.x * CAMERA_SPEED;
+                camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED;
             }
-            camera = (&camera_system).into();
             // rotate_camera_around_scene(&mut camera, &before_run);
-            pre_vp = (&perspective * &camera).into();
+            pre_vp = (perspective.get() * &camera.view()).into();
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
@@ -161,7 +179,7 @@ fn main() {
     });
 }
 
-fn rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
+fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
     let radius = 5.0;
     let delta = Instant::now().duration_since(run_start.clone()).as_secs_f32();
     let cam_x = delta.sin() * radius;

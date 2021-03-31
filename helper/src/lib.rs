@@ -92,13 +92,28 @@ pub fn load_glsl(path: &str) -> String {
 }
 
 
-pub fn get_perspective(width: u32, height: u32) -> glm::Mat4 {
-    glm::perspective(
-        width as f32 / height as f32,
-        std::f64::consts::FRAC_PI_4 as f32,
-        0.1,
-        100.0,
-    )
+pub struct Perspective{
+    pub aspect: f32,
+    pub fov: f32,
+    pub near: f32,
+    pub far: f32
+}
+
+impl Perspective {
+    pub fn get(&self) -> Mat4 {
+        glm::perspective(self.aspect, self.fov, self.near, self.far)
+    }
+}
+
+impl Default for Perspective {
+    fn default() -> Self {
+        Self {
+            aspect: 1024. / 768.,
+            fov: std::f64::consts::FRAC_PI_4 as f32,
+            near: 0.1,
+            far: 100.0
+        }
+    }
 }
 
 pub struct CameraSystem {
