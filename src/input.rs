@@ -91,7 +91,7 @@ impl Input {
                 .iter()
                 .map(|analog| self.poll_analog2d(analog))
                 .fold(glm::vec2(0., 0.), |v1, v2| v1 + v2),
-            Analog2d::Mouse { sensitivity } => self.mouse_rel.clone() * sensitivity,
+            Analog2d::Mouse { sensitivity } => (&self.mouse_rel) * sensitivity,
             Analog2d::Gestures {
                 ref x_positive,
                 ref x_negative,
@@ -217,8 +217,9 @@ impl Input {
         }
     }
 
-    pub fn increment_index(&mut self) {
+    pub fn tick_reset(&mut self) {
         self.current_index += 1;
+        self.mouse_rel = glm::vec2(0.0, 0.0);
     }
 }
 

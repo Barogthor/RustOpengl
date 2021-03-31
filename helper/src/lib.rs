@@ -107,19 +107,24 @@ pub struct CameraSystem {
     pub up: glm::Vec3
 }
 
+impl CameraSystem {
+    pub fn view(&self) -> glm::Mat4 {
+        glm::look_at(&self.pos, &(&self.pos + &self.front), &self.up)
+    }
+}
+
 impl Default for CameraSystem {
     fn default() -> Self {
         Self {
-            pos: glm::vec3(0.0, 0.0, -3.0),
+            pos: glm::vec3(0.0, 0.0, -7.0),
             front: glm::vec3(0.0, 0.0, 1.0),
             up: glm::vec3(0.0, 1.0, 0.0f32),
         }
     }
 }
 impl From<&CameraSystem> for Mat4{
-
     fn from(cam: &CameraSystem) -> Self {
-        glm::look_at(&cam.pos, &(&cam.pos + &cam.front), &cam.up)
+        cam.view()
     }
 }
 
@@ -160,14 +165,40 @@ impl Transform {
         self.transform = glm::rotate(&self.transform, angle, axis);
     }
 
-    #[inline]
     pub fn get(&self) -> &glm::Mat4 {
         &self.transform
     }
+    pub fn get_raw(&self) -> RawMat4 {
+        self.transform.clone().into()
+    }
 }
 
-impl From<&Transform> for [[f32; 4]; 4] {
+impl From<&Transform> for RawMat4 {
     fn from(v: &Transform) -> Self {
         v.transform.clone().into()
+    }
+}
+
+pub struct TransformBuilder(Transform);
+
+impl TransformBuilder {
+    pub fn new()-> Self {
+        Self(Transform::new())
+    }
+
+    pub fn scale(mut self, x: f32, y: f32, z: f32) -> Self {
+        self.0.scale(x, y, z);
+        self
+    }
+    pub fn rotate(mut self, angle: f32, axis: &glm::Vec3) -> Self {
+        self.0.rotate(angle, axis);
+        self
+    }
+    pub fn translate(mut self, x: f32, y: f32, z: f32) -> Self {
+        self.0.translate(x, y , z);
+        self
+    }
+    pub fn build(self) -> Transform {
+        self.0
     }
 }
