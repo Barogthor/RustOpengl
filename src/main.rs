@@ -115,10 +115,6 @@ fn main() {
                     yaw.sin() * pitch.cos(),
                 );
                 camera_system.front = direction.normalize();
-            } else {
-                // let window_context = display.gl_window();
-                // let window = window_context.window();
-                // let win_pos = window.set_cursor_visible(true);
             }
 
             if input.poll_gesture(&binding.swap_color) {
@@ -140,15 +136,6 @@ fn main() {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
             let color: [f32; 3] = uniform_color.into();
-            // let t: RawMat4 = (&triangle_transform).into();
-            // let uniforms = uniform! {
-            //     uColor: color,
-            //     tex: &bricks_tex,
-            //     vp: pre_vp,
-            //     transform: t
-            // };
-            // frame.draw(&triangle_vertexes, &triangle_indexes, &sample_program, &uniforms, &draw_params).unwrap();
-
             cube_models.iter().for_each(|model| {
                 let model = model.get_raw();
                 let uniforms = uniform! {
