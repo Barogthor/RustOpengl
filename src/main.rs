@@ -59,28 +59,31 @@ fn main() {
         Vertex::new(-0.5, -0.5, 0.0, [0.0, 0.0]),
         Vertex::new(-0.5, 0.5, 0.0, [0.0, 1.0])
     ];
-    let sample_vertex_src = load_glsl("resources/shaders/sample_tex.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/sample_tex.fs.glsl");
+    let sample_vertex_src = load_glsl("resources/shaders/light_color.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/light_color.fs.glsl");
+    let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
+    let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
+    let lighting_program =
+        glium::Program::from_source(&display, &lighting_vertex_src, &lighting_fragment_src, None)
+            .unwrap();
     let sample_program =
         glium::Program::from_source(&display, &sample_vertex_src, &sample_fragment_src, None)
             .unwrap();
-    let triangle_vertexes = VertexBuffer::new(&display, &square).unwrap();
-    let triangle_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 2, 2, 3, 0]).unwrap();
-    let triangle_transform = Transform::new();
     let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
     let cube_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &cube_indexes()).unwrap();
     let cube_models = [
-        TransformBuilder::new().translate(0.0, 0.0, 0.0).rotate(to_radians(55.0), &x_axis).build(),
+        TransformBuilder::new().build(),
         TransformBuilder::new().translate(2.0, 5.0, -15.0).rotate(to_radians(82.0), &y_axis).build(),
-        TransformBuilder::new().translate(-1.5, -2.2, -2.5).build(),
-        TransformBuilder::new().translate(-3.8, -2.0, -12.3).rotate(to_radians(34.), &z_axis).build(),
+        TransformBuilder::new().translate(-1.5, -2.2, -2.5).rotate(to_radians(55.0), &x_axis).build(),
+        TransformBuilder::new().translate(-3.8, -2.0, -12.3).rotate(to_radians(112.), &z_axis).build(),
         TransformBuilder::new().translate(2.4, -0.4, -3.5).rotate(to_radians(71.), &y_axis).build(),
-        TransformBuilder::new().translate(-1.7, 3.0, -7.5).rotate(to_radians(47.), &custom_axis).build(),
+        TransformBuilder::new().translate(-1.7, 3.0, -7.5).rotate(to_radians(170.), &custom_axis).build(),
         TransformBuilder::new().translate(1.3, -2.0, -2.5).build(),
         TransformBuilder::new().translate(1.5, 2.0, -2.5).rotate(to_radians(131.), &x_axis).build(),
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
+    let light_bulb = TransformBuilder::new().translate(1.2, 2.0, 1.5).scale(0.2, 0.2, 0.2).build();
 
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
@@ -88,10 +91,11 @@ fn main() {
     let mut perspective = Perspective::default();
     let vp = perspective.get() * &camera.view();
     let mut pre_vp: RawMat4 = vp.into();
+    let light_color = vec3(0.33, 0.42, 0.18f32);
+    let object_color = vec3(1.0, 0.5, 0.31f32);
 
     let (mut yaw, mut pitch) = (0.1, PITCH_MAX);
 
-    let before_run = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
             StartCause::ResumeTimeReached { .. } => {}
@@ -152,16 +156,24 @@ fn main() {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
             let color: [f32; 3] = uniform_color.into();
-            cube_models.iter().for_each(|model| {
-                let model = model.get_raw();
-                let uniforms = uniform! {
-                    uColor: color,
-                    tex: &rubiks_tex,
-                    vp: pre_vp,
-                    model: model
-                };
-                frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
-            });
+
+            let model = light_bulb.get_raw();
+            let uniforms = uniform! {
+                vp: pre_vp,
+                model: model
+            };
+            frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &uniforms, &draw_params).unwrap();
+            let light_color: [f32; 3] = light_color.into();
+            let object_color: [f32; 3] = object_color.into();
+            let model = cube_models[0].get_raw();
+            let uniforms = uniform! {
+                lightColor: light_color,
+                objectColor: object_color,
+                vp: pre_vp,
+                model: model
+            };
+            frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
+
             frame.finish().unwrap()
         }
         Event::RedrawEventsCleared => {
