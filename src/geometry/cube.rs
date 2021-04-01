@@ -1,4 +1,4 @@
-use crate::Vertex;
+use graphics::Vertex;
 
 pub fn cube_indexes() -> [u16; 36] {
     [

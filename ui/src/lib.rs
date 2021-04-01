@@ -1,10 +1,10 @@
-use glium::{Display, glutin};
-use winit::event::{DeviceEvent, VirtualKeyCode};
-use winit::event::{Event, MouseButton};
 
-use helper::glm;
+pub use winit;
+pub type LoopType = winit::event_loop::EventLoop<()>;
 
-use crate::input::InputState::{Pressed, Released};
+use winit::event::{VirtualKeyCode, MouseButton, Event};
+use math::glm;
+use crate::InputState::{Pressed, Released};
 
 const MAX_MOUSE_BUTTONS: usize = 256;
 const MAX_KEY_BUTTONS: usize = 512;
@@ -131,22 +131,10 @@ impl Input {
         self.mouse_grabbed
     }
 
-    pub fn update(&mut self, window: &Display, event: &Event<()>) {
-        if self.new_mouse_grabbed != self.mouse_grabbed {
-            self.mouse_grabbed = self.new_mouse_grabbed;
-            window
-                .gl_window()
-                .window()
-                .set_cursor_grab(self.mouse_grabbed)
-                .ok();
-            window
-                .gl_window()
-                .window()
-                .set_cursor_visible(self.mouse_grabbed);
-        }
+    pub fn update(&mut self, event: &Event<()>) {
         match event {
-            glutin::event::Event::WindowEvent { event, .. } => match event {
-                glutin::event::WindowEvent::KeyboardInput {
+            Event::WindowEvent { event, .. } => match event {
+                winit::event::WindowEvent::KeyboardInput {
                     device_id,
                     input,
                     is_synthetic,
@@ -159,8 +147,8 @@ impl Input {
                     }
                     (None, _) => {}
                 },
-                glutin::event::WindowEvent::Focused(flag) => {}
-                glutin::event::WindowEvent::MouseWheel {
+                winit::event::WindowEvent::Focused(flag) => {}
+                winit::event::WindowEvent::MouseWheel {
                     device_id,
                     delta,
                     phase,
@@ -171,7 +159,7 @@ impl Input {
                     }
                     _ => {}
                 },
-                glutin::event::WindowEvent::MouseInput {
+                winit::event::WindowEvent::MouseInput {
                     device_id,
                     state,
                     button,
@@ -186,19 +174,19 @@ impl Input {
                             Released(self.current_index)
                     }
                 },
-                glutin::event::WindowEvent::CursorMoved {
+                winit::event::WindowEvent::CursorMoved {
                     device_id,
                     position,
                     ..
                 } => {}
-                glutin::event::WindowEvent::CloseRequested => {
+                winit::event::WindowEvent::CloseRequested => {
                     self.quit_requested_index = self.current_index
                 }
                 _ => {}
             },
 
-            glutin::event::Event::DeviceEvent {
-                event: DeviceEvent::Motion { axis, value },
+            winit::event::Event::DeviceEvent {
+                event: winit::event::DeviceEvent::Motion { axis, value },
                 ..
             } => {
                 if *axis < 2 {
@@ -241,5 +229,53 @@ fn mouse_button_index(button: &MouseButton) -> usize {
         MouseButton::Middle => 1,
         MouseButton::Right => 2,
         MouseButton::Other(id) => *id as usize,
+    }
+}
+
+
+type Key = VirtualKeyCode;
+pub struct Binding {
+    pub exit: Gesture,
+    pub movement: Analog2d,
+    pub look: Analog2d,
+    pub jump: Gesture,
+    pub fall: Gesture,
+    pub fullscreen: Gesture,
+    pub scroll: Analog2d,
+    pub toggle_mouse: Gesture,
+    pub swap_color: Gesture,
+}
+
+impl Binding {
+    pub fn create() -> Self {
+        Self {
+            exit: Gesture::KeyTrigger(Key::Escape),
+            movement: Analog2d::Gestures {
+                x_positive: Gesture::AnyOf(vec![
+                    Gesture::KeyHold(Key::D),
+                    Gesture::KeyHold(Key::Right),
+                ]),
+                x_negative: Gesture::AnyOf(vec![
+                    Gesture::KeyHold(Key::Q),
+                    Gesture::KeyHold(Key::Left),
+                ]),
+                y_positive: Gesture::AnyOf(vec![
+                    Gesture::KeyHold(Key::Z),
+                    Gesture::KeyHold(Key::Up),
+                ]),
+                y_negative: Gesture::AnyOf(vec![
+                    Gesture::KeyHold(Key::S),
+                    Gesture::KeyHold(Key::Down),
+                ]),
+                step: 0.015,
+            },
+            look: Analog2d::Mouse { sensitivity: 0.015 },
+            jump: Gesture::KeyHold(Key::Space),
+            fall: Gesture::KeyHold(Key::C),
+            fullscreen: Gesture::KeyTrigger(Key::F),
+            scroll: Analog2d::MouseWheel { sensitivity: 0.030 },
+            toggle_mouse: Gesture::ButtonHold(MouseButton::Right),
+            swap_color: Gesture::KeyTrigger(Key::R),
+        }
     }
 }

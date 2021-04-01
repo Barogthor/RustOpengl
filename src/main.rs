@@ -1,19 +1,17 @@
-#[macro_use]
-extern crate glium;
-
 use std::time::Instant;
 
-use glium::{glutin, Surface};
-use winit::dpi::{PhysicalPosition, PhysicalSize, Size};
-use winit::event::{Event, StartCause};
-use winit::event_loop::ControlFlow;
-
-use helper::{CameraSystem, Colors, load_glsl, Perspective, RawMat4, Transform, TransformBuilder};
-use helper::glm::{cross, look_at, Mat4, normalize, vec3};
-use rust_opengl::{draw_params, load_png_texture, set_fullscreen, Vertex};
-use rust_opengl::binding::Binding;
+use graphics::{Colors, draw_params, glium, load_glsl, load_png_texture, Vertex};
+use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
+use graphics::glium::glutin::event::{Event, StartCause};
+use graphics::glium::glutin::event_loop::ControlFlow;
+use graphics::glium::glutin::window::WindowBuilder;
+use graphics::glium::Surface;
+use graphics::glium::uniform;
+use math::{CameraSystem, Perspective, RawMat4, Transform, TransformBuilder};
+use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
-use rust_opengl::input::{Gesture, Input};
+use rust_opengl::set_fullscreen;
+use ui::{Binding, Gesture, Input};
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
 pub type VertexBuffer = glium::VertexBuffer<Vertex>;
@@ -44,10 +42,10 @@ fn main() {
     let custom_axis = vec3(1.0, 0.3, 0.5f32);
     let draw_params = draw_params();
     let event_loop: LoopType = LoopType::new();
-    let wb = glutin::window::WindowBuilder::new()
+    let wb = WindowBuilder::new()
         .with_title("3D Playground")
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
-    let cb = glutin::ContextBuilder::new();
+    let cb = glium::glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
     let mut input = Input::create();
     let binding = Binding::create();
@@ -81,7 +79,7 @@ fn main() {
         TransformBuilder::new().translate(1.3, -2.0, -2.5).build(),
         TransformBuilder::new().translate(1.5, 2.0, -2.5).rotate(to_radians(131.), &x_axis).build(),
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
-        TransformBuilder::new().translate(-1.3f32, 1.0f32, -1.5f32).build(),
+        TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
 
     let mut uniform_color = Colors::MAGENTA;
@@ -91,7 +89,7 @@ fn main() {
     let vp = perspective.get() * &camera.view();
     let mut pre_vp: RawMat4 = vp.into();
 
-    let (mut yaw, mut pitch) = (0., PITCH_MAX);
+    let (mut yaw, mut pitch) = (0.1, PITCH_MAX);
 
     let before_run = Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
@@ -147,7 +145,7 @@ fn main() {
                 camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED;
             }
             // rotate_camera_around_scene(&mut camera, &before_run);
-            pre_vp = (perspective.get() * &camera.view()).into();
+            pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
@@ -175,7 +173,7 @@ fn main() {
             }
             input.tick_reset();
         }
-        _ => input.update(&display, &event),
+        _ => input.update(&event),
     });
 }
 
