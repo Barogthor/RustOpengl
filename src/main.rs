@@ -36,6 +36,32 @@ fn to_radians(degree: f32) -> f32 {
 }
 
 fn main() {
+    let p = [
+        vec3(0.0, 1.0, 0.0),
+        vec3(0.0, 0.0, 0.0),
+        vec3(1.0, 1.0, 0.0),
+        vec3(1.0, 0.0, 0.0),
+        vec3(0.0, 0.0, 1.0),
+        vec3(1.0, 0.0, 1.0),
+        vec3(0.0, 1.0, 1.0),
+        vec3(1.0, 1.0, 1.0),
+        vec3(0.0, 1.0, 0.0),
+        vec3(1.0, 1.0, 0.0),
+        vec3(0.0, 1.0, 0.0),
+        vec3(0.0, 1.0, 1.0),
+        vec3(1.0, 1.0, 0.0),
+        vec3(1.0, 1.0, 1.0),
+    ];
+
+    let mut normals = vec![];
+    normals.push(cross(&(&p[1] - &p[0]), &(&p[3] - &p[1])));  // front
+    normals.push(cross(&(&p[6] - &p[4]), &(&p[5] - &p[4])));  // back
+    normals.push(cross(&(&p[8] - &p[6]), &(&p[7] - &p[6])));  // top
+    normals.push(cross(&(&p[1] - &p[3]), &(&p[5] - &p[3])));  // bottom
+    normals.push(cross(&(&p[1] - &p[10]), &(&p[11] - &p[10])));  // left
+    normals.push(cross(&(&p[3] - &p[12]), &(&p[13] - &p[12])));  // right
+    println!("{:?}", normals);
+    // return;
     let z_axis = vec3(0.0, 0.0, 1.0f32);
     let y_axis = vec3(0.0, 1.0, 0.0f32);
     let x_axis = vec3(1.0, 0.0, 0.0f32);
@@ -53,14 +79,14 @@ fn main() {
     let background_color = Colors::BLACK;
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
-    let square = [
-        Vertex::new(0.5, 0.5, 0.0, [1.0, 1.0]),
-        Vertex::new(0.5, -0.5, 0.0, [1.0, 0.0]),
-        Vertex::new(-0.5, -0.5, 0.0, [0.0, 0.0]),
-        Vertex::new(-0.5, 0.5, 0.0, [0.0, 1.0])
-    ];
-    let sample_vertex_src = load_glsl("resources/shaders/light_color.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/light_color.fs.glsl");
+    // let square = [
+    //     Vertex::new(0.5, 0.5, 0.0, [1.0, 1.0]),
+    //     Vertex::new(0.5, -0.5, 0.0, [1.0, 0.0]),
+    //     Vertex::new(-0.5, -0.5, 0.0, [0.0, 0.0]),
+    //     Vertex::new(-0.5, 0.5, 0.0, [0.0, 1.0])
+    // ];
+    let sample_vertex_src = load_glsl("resources/shaders/basic_lighting.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/basic_lighting.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -83,7 +109,8 @@ fn main() {
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
-    let light_bulb = TransformBuilder::new().translate(1.2, 2.0, 1.5).scale(0.2, 0.2, 0.2).build();
+    let light_position = vec3(1.2, 2.0, 1.5f32);
+    let light_bulb = TransformBuilder::new().translate(light_position.x, light_position.y, light_position.z).scale(0.2, 0.2, 0.2).build();
 
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
@@ -165,10 +192,12 @@ fn main() {
             frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &uniforms, &draw_params).unwrap();
             let light_color: [f32; 3] = light_color.into();
             let object_color: [f32; 3] = object_color.into();
+            let light_position: [f32; 3] = light_position.into();
             let model = cube_models[0].get_raw();
             let uniforms = uniform! {
                 lightColor: light_color,
                 objectColor: object_color,
+                lightPos: light_position,
                 vp: pre_vp,
                 model: model
             };
@@ -198,3 +227,4 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
                       &vec3(0.0, 0.0, 0.0),
                       &vec3(0.0, 1.0, 0.0f32));
 }
+

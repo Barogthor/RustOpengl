@@ -8,11 +8,11 @@ pub use vertex::*;
 pub use texture::*;
 
 use glium::DrawParameters;
-use crate::vertex::VertexTex;
+use crate::vertex::VertexNorm;
 use std::fs::File;
 use std::io::Read;
 
-pub type Vertex = VertexTex;
+pub type Vertex = VertexNorm;
 
 pub fn load_glsl(path: &str) -> String {
     let mut nice_shader = String::new();

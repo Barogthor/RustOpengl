@@ -8,7 +8,7 @@ pub struct VertexFlat {
 
 impl VertexFlat {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
-        VertexFlat {
+        Self {
             position: [x, y, z],
             // tex_coords,
         }
@@ -26,7 +26,7 @@ pub struct VertexTex {
 
 impl VertexTex {
     pub fn new(x: f32, y: f32, z: f32, tex_coords: [f32; 2]) -> Self {
-        VertexTex {
+        Self {
             position: [x, y, z],
             tex_coords,
         }
@@ -35,3 +35,22 @@ impl VertexTex {
 
 glium::implement_vertex!(VertexTex, position, tex_coords);
 
+
+#[derive(Copy, Clone, Debug)]
+pub struct VertexNorm {
+    position: [f32; 3],
+    normal: [f32; 3],
+    tex_coords: [f32; 2],
+}
+
+impl VertexNorm {
+    pub fn new(x: f32, y: f32, z: f32, normal: [f32; 3], tex_coords: [f32; 2]) -> Self {
+        Self {
+            position: [x, y, z],
+            normal,
+            tex_coords,
+        }
+    }
+}
+
+glium::implement_vertex!(VertexNorm, position, normal, tex_coords);
