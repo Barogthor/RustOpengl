@@ -36,32 +36,6 @@ fn to_radians(degree: f32) -> f32 {
 }
 
 fn main() {
-    let p = [
-        vec3(0.0, 1.0, 0.0),
-        vec3(0.0, 0.0, 0.0),
-        vec3(1.0, 1.0, 0.0),
-        vec3(1.0, 0.0, 0.0),
-        vec3(0.0, 0.0, 1.0),
-        vec3(1.0, 0.0, 1.0),
-        vec3(0.0, 1.0, 1.0),
-        vec3(1.0, 1.0, 1.0),
-        vec3(0.0, 1.0, 0.0),
-        vec3(1.0, 1.0, 0.0),
-        vec3(0.0, 1.0, 0.0),
-        vec3(0.0, 1.0, 1.0),
-        vec3(1.0, 1.0, 0.0),
-        vec3(1.0, 1.0, 1.0),
-    ];
-
-    let mut normals = vec![];
-    normals.push(cross(&(&p[1] - &p[0]), &(&p[3] - &p[1])));  // front
-    normals.push(cross(&(&p[6] - &p[4]), &(&p[5] - &p[4])));  // back
-    normals.push(cross(&(&p[8] - &p[6]), &(&p[7] - &p[6])));  // top
-    normals.push(cross(&(&p[1] - &p[3]), &(&p[5] - &p[3])));  // bottom
-    normals.push(cross(&(&p[1] - &p[10]), &(&p[11] - &p[10])));  // left
-    normals.push(cross(&(&p[3] - &p[12]), &(&p[13] - &p[12])));  // right
-    println!("{:?}", normals);
-    // return;
     let z_axis = vec3(0.0, 0.0, 1.0f32);
     let y_axis = vec3(0.0, 1.0, 0.0f32);
     let x_axis = vec3(1.0, 0.0, 0.0f32);
@@ -193,13 +167,15 @@ fn main() {
             let light_color: [f32; 3] = light_color.into();
             let object_color: [f32; 3] = object_color.into();
             let light_position: [f32; 3] = light_position.into();
+            let view_pos: [f32; 3] = camera.pos.into();
             let model = cube_models[0].get_raw();
             let uniforms = uniform! {
                 lightColor: light_color,
                 objectColor: object_color,
                 lightPos: light_position,
                 vp: pre_vp,
-                model: model
+                model: model,
+                viewPos: view_pos
             };
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
