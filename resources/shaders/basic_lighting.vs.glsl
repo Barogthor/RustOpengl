@@ -12,5 +12,5 @@ uniform mat4 model;
 void main() {
     gl_Position = vp * model * vec4(position, 1.0);
     fragPos = vec3(model * vec4(position, 1.0));
-    oNormal = normal;
+    oNormal = mat3(transpose(inverse(model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
 }
