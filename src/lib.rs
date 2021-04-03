@@ -133,6 +133,16 @@ impl TickSystem {
         }
     }
 
+    pub fn duration_since_frame_start(&self) -> Option<f64> {
+        if let Some(state) = self.running_tick.get(&TICK_FRAME_ID) {
+            return match state {
+                TickState::Running(since) => Some(Instant::now().duration_since(since.clone()).as_secs_f64()),
+                _ => None
+            };
+        }
+        None
+    }
+
     pub fn debug_tick(&self, id: TickID) {
         if let Some(history) = self.tick_history.get(&id) {
             println!("({:2}) {:7} lasted {:5.3} ms, avg ± {:5.3} ({:5.3}, {:5.3})",
