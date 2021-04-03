@@ -10,8 +10,8 @@ use graphics::glium::Surface;
 use graphics::glium::uniform;
 use math::{CameraSystem, Perspective, RawMat4, Transform, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
+use rust_opengl::{set_fullscreen, TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_ID, TickSystem};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
-use rust_opengl::set_fullscreen;
 use ui::{Binding, Gesture, Input};
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
@@ -42,6 +42,10 @@ fn main() {
     let x_axis = vec3(1.0, 0.0, 0.0f32);
     let custom_axis = vec3(1.0, 0.3, 0.5f32);
     let draw_params = draw_params();
+    let mut tick_system = TickSystem::new();
+    tick_system.register_listener(TICK_FRAME_ID);
+    tick_system.register_listener(TICK_DRAW_ID);
+    tick_system.register_listener(TICK_RENDER_ID);
     let event_loop: LoopType = LoopType::new();
     let wb = WindowBuilder::new()
         .with_title("3D Playground")
@@ -103,7 +107,9 @@ fn main() {
             StartCause::ResumeTimeReached { .. } => {}
             StartCause::WaitCancelled { .. } => {}
             StartCause::Poll => {}
-            StartCause::Init => {}
+            StartCause::Init => {
+                tick_system.start_tick(TICK_FRAME_ID);
+            }
         },
         Event::MainEventsCleared => {
             if input.poll_gesture(&binding.toggle_mouse) {
@@ -155,6 +161,7 @@ fn main() {
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
+            tick_system.start_tick(TICK_RENDER_ID);
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
             let color: [f32; 3] = uniform_color.into();
@@ -182,7 +189,9 @@ fn main() {
             };
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
-            frame.finish().unwrap()
+            frame.finish().unwrap();
+            tick_system.end_tick(TICK_RENDER_ID);
+            tick_system.debug_tick(TICK_RENDER_ID);
         }
         Event::RedrawEventsCleared => {
             if input.poll_gesture(&binding.exit) || input.poll_gesture(&Gesture::QuitTrigger) {
@@ -192,6 +201,15 @@ fn main() {
                 set_fullscreen(&display, &mut fullscreen);
             }
             input.tick_reset();
+            tick_system.end_tick(TICK_FRAME_ID);
+            tick_system.debug_tick(TICK_FRAME_ID);
+            tick_system.update_time();
+            if tick_system.should_reset() {
+                tick_system.debug_tick_iteration();
+                tick_system.reset();
+            }
+            println!();
+            tick_system.start_tick(TICK_FRAME_ID);
         }
         _ => input.update(&event),
     });
