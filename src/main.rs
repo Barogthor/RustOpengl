@@ -88,8 +88,8 @@ fn main() {
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
-    let light_position = vec3(1.2, 2.0, 1.5f32);
-    let light_bulb = TransformBuilder::new().translate(light_position.x, light_position.y, light_position.z).scale(0.2, 0.2, 0.2).build();
+    let mut light_position = vec3(1.2, 2.0, 1.5f32);
+    let mut light_bulb = TransformBuilder::new().translate(light_position.x, light_position.y, light_position.z).scale(0.2, 0.2, 0.2).build();
 
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
@@ -157,6 +157,10 @@ fn main() {
                 camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED;
             }
             // rotate_camera_around_scene(&mut camera, &before_run);
+            if let Some(duration) = tick_system.duration_since_frame_start() {
+                rotate_light_around_scene(&mut light_position, duration as f32);
+                light_bulb.move_to(light_position.x, light_position.y, light_position.z);
+            }
             pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
         }
@@ -223,5 +227,9 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
     *camera = look_at(&vec3(cam_x, 2.0, cam_z),
                       &vec3(0.0, 0.0, 0.0),
                       &vec3(0.0, 1.0, 0.0f32));
+}
+
+fn rotate_light_around_scene(light_pos: &mut math::glm::Vec3, delta: f32) {
+    *light_pos = math::glm::rotate_vec3(light_pos, delta, &vec3(1.0, 0.0, 0.0));
 }
 
