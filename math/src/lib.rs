@@ -70,8 +70,10 @@ impl Transform {
         self.transform = glm::scale(&self.transform, &glm::vec3(x, y, z));
     }
 
-    pub fn move_to(&mut self, _x: f32, _y: f32, _z: f32) {
-        unimplemented!()
+    pub fn move_to(&mut self, x: f32, y: f32, z: f32) {
+        self.transform.m14 = x;
+        self.transform.m24 = y;
+        self.transform.m34 = z;
     }
 
     pub fn translate(&mut self, x: f32, y: f32, z: f32){
