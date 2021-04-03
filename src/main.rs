@@ -1,3 +1,4 @@
+use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Instant;
 
 use graphics::{Colors, draw_params, glium, load_glsl, load_png_texture, Vertex};
@@ -95,7 +96,7 @@ fn main() {
     let light_color = vec3(0.33, 0.42, 0.18f32);
     let object_color = vec3(1.0, 0.5, 0.31f32);
 
-    let (mut yaw, mut pitch) = (0.0, 0.0);
+    let (mut yaw, mut pitch) = (FRAC_PI_2, 0.0);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
