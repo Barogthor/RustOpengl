@@ -95,7 +95,7 @@ fn main() {
     let light_color = vec3(0.33, 0.42, 0.18f32);
     let object_color = vec3(1.0, 0.5, 0.31f32);
 
-    let (mut yaw, mut pitch) = (0.1, PITCH_MAX);
+    let (mut yaw, mut pitch) = (0.0, 0.0);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
@@ -168,12 +168,14 @@ fn main() {
             let object_color: [f32; 3] = object_color.into();
             let light_position: [f32; 3] = light_position.into();
             let view_pos: [f32; 3] = camera.pos.into();
+            let view: RawMat4 = camera.view().into();
             let model = cube_models[0].get_raw();
             let uniforms = uniform! {
                 lightColor: light_color,
                 objectColor: object_color,
                 lightPos: light_position,
                 vp: pre_vp,
+                view: view,
                 model: model,
                 viewPos: view_pos
             };
