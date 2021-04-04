@@ -145,7 +145,7 @@ impl TickSystem {
 
     pub fn debug_tick(&self, id: TickID) {
         if let Some(history) = self.tick_history.get(&id) {
-            println!("({:2}) {:7} lasted {:5.3} ms, avg ± {:5.3} ({:5.3}, {:5.3})",
+            println!("({:2}) {:7} lasted {:5.3} ms, avg ± {:5.3} (-{:5.3}, +{:5.3})",
                      history.datas.len(),
                      id,
                      history.datas.last().unwrap().duration * 1000.,
@@ -157,7 +157,7 @@ impl TickSystem {
     }
     pub fn debug_tick_iteration(&self) {
         if let Some(history) = self.tick_history.get(&TICK_FRAME_ID) {
-            println!("{:3} FPS with, avg ± {:5.3} ms ({:5.3}, {:5.3})",
+            println!("{:3} FPS with, avg ± {:5.3} ms (-{:5.3}, +{:5.3})",
                      history.datas.len(),
                      history.average * 1000.,
                      (history.average - history.min) * 1000.,

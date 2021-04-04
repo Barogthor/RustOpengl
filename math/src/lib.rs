@@ -42,8 +42,8 @@ impl CameraSystem {
 impl Default for CameraSystem {
     fn default() -> Self {
         Self {
-            pos: glm::vec3(0.0, 0.0, -7.0),
-            front: glm::vec3(0.0, 0.0, 1.0),
+            pos: glm::vec3(4.0, 4.0, 2.0),
+            front: glm::vec3(-4.0, -4.0, -2.0),
             up: glm::vec3(0.0, 1.0, 0.0f32),
         }
     }

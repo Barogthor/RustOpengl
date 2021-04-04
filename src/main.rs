@@ -58,12 +58,16 @@ fn main() {
     let background_color = Colors::BLACK;
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
-    // let square = [
-    //     Vertex::new(0.5, 0.5, 0.0, [1.0, 1.0]),
-    //     Vertex::new(0.5, -0.5, 0.0, [1.0, 0.0]),
-    //     Vertex::new(-0.5, -0.5, 0.0, [0.0, 0.0]),
-    //     Vertex::new(-0.5, 0.5, 0.0, [0.0, 1.0])
-    // ];
+    let square = [
+        Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
+        Vertex::new(1.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
+        Vertex::new(0.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 0.0]),
+        Vertex::new(1.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 1.0])
+    ];
+    let square_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
+    let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
+
+    let floor_model = TransformBuilder::new().scale(10., 10., 10.).build();
     let sample_vertex_src = load_glsl("resources/shaders/basic_lighting.vs.glsl");
     let sample_fragment_src = load_glsl("resources/shaders/basic_lighting.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
@@ -77,7 +81,7 @@ fn main() {
     let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
     let cube_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &cube_indexes()).unwrap();
     let cube_models = [
-        TransformBuilder::new().build(),
+        TransformBuilder::new().translate(0.0, 0.0, 1.0).build(),
         TransformBuilder::new().translate(2.0, 5.0, -15.0).rotate(to_radians(82.0), &y_axis).build(),
         TransformBuilder::new().translate(-1.5, -2.2, -2.5).rotate(to_radians(55.0), &x_axis).build(),
         TransformBuilder::new().translate(-3.8, -2.0, -12.3).rotate(to_radians(112.), &z_axis).build(),
@@ -100,7 +104,7 @@ fn main() {
     let light_color = vec3(0.33, 0.42, 0.18f32);
     let object_color = vec3(1.0, 0.5, 0.31f32);
 
-    let (mut yaw, mut pitch) = (FRAC_PI_2, 0.0);
+    let (mut yaw, mut pitch) = (FRAC_PI_2 * 2., 0.0);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
@@ -193,9 +197,22 @@ fn main() {
             };
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
+            let object_color: [f32; 3] = Colors::RED.into();
+            let model = floor_model.get_raw();
+            let uniforms = uniform! {
+                lightColor: light_color,
+                objectColor: object_color,
+                lightPos: light_position,
+                vp: pre_vp,
+                view: view,
+                model: model,
+                viewPos: view_pos
+            };
+            frame.draw(&square_vertexes, &square_indexes, &sample_program, &uniforms, &draw_params).unwrap();
+
             frame.finish().unwrap();
             tick_system.end_tick(TICK_RENDER_ID);
-            tick_system.debug_tick(TICK_RENDER_ID);
+            // tick_system.debug_tick(TICK_RENDER_ID);
         }
         Event::RedrawEventsCleared => {
             if input.poll_gesture(&binding.exit) || input.poll_gesture(&Gesture::QuitTrigger) {
@@ -206,13 +223,13 @@ fn main() {
             }
             input.tick_reset();
             tick_system.end_tick(TICK_FRAME_ID);
-            tick_system.debug_tick(TICK_FRAME_ID);
+            // tick_system.debug_tick(TICK_FRAME_ID);
             tick_system.update_time();
             if tick_system.should_reset() {
                 tick_system.debug_tick_iteration();
                 tick_system.reset();
             }
-            println!();
+            // println!();
             tick_system.start_tick(TICK_FRAME_ID);
         }
         _ => input.update(&event),
@@ -230,6 +247,6 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
 }
 
 fn rotate_light_around_scene(light_pos: &mut math::glm::Vec3, delta: f32) {
-    *light_pos = math::glm::rotate_vec3(light_pos, delta, &vec3(1.0, 0.0, 0.0));
+    *light_pos = math::glm::rotate_vec3(light_pos, delta, &vec3(0.0, 0.0, 1.0));
 }
 
