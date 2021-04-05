@@ -1,11 +1,15 @@
 mod colors;
 mod vertex;
 mod texture;
+mod material;
+mod light;
 
 pub use colors::Colors;
 pub use glium;
 pub use vertex::*;
 pub use texture::*;
+pub use material::*;
+pub use light::*;
 
 use glium::DrawParameters;
 use crate::vertex::VertexNorm;
@@ -35,5 +39,4 @@ pub fn draw_params() -> DrawParameters<'static> {
         ..DrawParameters::default()
     }
 }
-
 
