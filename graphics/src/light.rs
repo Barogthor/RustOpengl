@@ -1,23 +1,23 @@
-use glium::implement_uniform_block;
+use crate::GVec3;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Light {
-    pub position: (f32, f32, f32),
-    pub ambient: (f32, f32, f32),
-    pub diffuse: (f32, f32, f32),
-    pub specular: (f32, f32, f32),
+    pub position: GVec3,
+    pub ambient: GVec3,
+    pub diffuse: GVec3,
+    pub specular: GVec3,
 }
 impl Light {
-    pub fn new(position: math::glm::Vec3, ambient: math::glm::Vec3, diffuse: math::glm::Vec3, specular: math::glm::Vec3) -> Self {
+    pub fn new(position:  GVec3, ambient:  GVec3, diffuse:  GVec3, specular:  GVec3) -> Self {
         Self {
-            ambient: (ambient.x, ambient.y, ambient.z),
-            diffuse: (diffuse.x, diffuse.y, diffuse.z),
-            specular: (specular.x, specular.y, specular.z),
-            position: (position.x, position.y, position.z),
+            ambient,
+            diffuse,
+            specular,
+            position,
 
         }
     }
 }
 
-implement_uniform_block!(Light, position, ambient, diffuse, specular );
+// implement_uniform_block!(Light, position, ambient, diffuse, specular );
 

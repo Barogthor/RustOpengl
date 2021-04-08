@@ -1,22 +1,34 @@
-use glium::implement_uniform_block;
+use crate::GVec3;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Material {
-    pub ambient: (f32, f32, f32),
-    pub diffuse: (f32, f32, f32),
-    pub specular: (f32, f32, f32),
+    pub ambient: GVec3,
+    pub diffuse: GVec3,
+    pub specular: GVec3,
     pub shininess: f32,
 }
 impl Material {
-    pub fn new(ambient: math::glm::Vec3, diffuse: math::glm::Vec3, specular: math::glm::Vec3, shininess: f32) -> Self {
+    pub fn new(ambient:  GVec3, diffuse:  GVec3, specular:  GVec3, shininess: f32) -> Self {
         Self {
-            ambient: (ambient.x, ambient.y, ambient.z),
-            diffuse: (diffuse.x, diffuse.y, diffuse.z),
-            specular: (specular.x, specular.y, specular.z),
-            shininess: shininess * 128.
+            ambient,
+            diffuse,
+            specular,
+            shininess: shininess * 128.,
         }
     }
 }
 
-implement_uniform_block!(Material, ambient, diffuse, specular, shininess);
+// implement_uniform_block!(Material, ambient, diffuse, specular, shininess);
 
+
+
+// impl Uniforms for &Material{
+//     fn visit_values<'a, F: FnMut(&str, UniformValue<'a>)>(&'a self, mut f: F) {
+//         f("material.ambient", UniformValue::Vec3([self.ambient.x, self.ambient.y, self.ambient.z]));
+//         f("material.diffuse", UniformValue::Vec3([self.diffuse.x, self.diffuse.y, self.diffuse.z]));
+//         f("material.specular", UniformValue::Vec3([self.specular.x, self.specular.y, self.specular.z]));
+//         f("material.shininess", UniformValue::Float(self.shininess));
+//     }
+// }
+
+// implement_buffer_content!(Material);
