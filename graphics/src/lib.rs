@@ -3,6 +3,7 @@ mod vertex;
 mod texture;
 mod material;
 mod light;
+mod math_data;
 
 pub use colors::Colors;
 pub use glium;
@@ -10,6 +11,7 @@ pub use vertex::*;
 pub use texture::*;
 pub use material::*;
 pub use light::*;
+pub use math_data::*;
 
 use glium::DrawParameters;
 use crate::vertex::VertexNorm;
