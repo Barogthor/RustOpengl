@@ -172,10 +172,10 @@ fn main() {
             }
             // rotate_camera_around_scene(&mut camera, &before_run);
             if let Some(duration) = tick_system.duration_since_frame_start() {
-                rotate_light_around_scene(&mut light_position, duration as f32);
-                light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
-                // rotate_light_around_scene(&mut light.position, duration as f32);
-                // light_bulb.move_to(light.position.0, light.position.1, light.position.2);
+                // rotate_light_around_scene(&mut light_position, duration as f32);
+                // light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
+                rotate_light_around_scene(&mut light.position, duration as f32);
+                light_bulb.move_to(light.position.data.x, light.position.data.y, light.position.data.z);
             }
             pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
@@ -192,9 +192,6 @@ fn main() {
                 model: model
             };
             frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &uniforms, &draw_params).unwrap();
-            // let light_color: [f32; 3] = light_color.into();
-            // let object_color: [f32; 3] = object_color.into();
-            // let light_position: [f32; 3] = light_position.into();
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
             let model = cube_models[0].get_raw();
@@ -211,6 +208,10 @@ fn main() {
             let uniforms = uniforms.add("material.diffuse", gold.diffuse);
             let uniforms = uniforms.add("material.specular", gold.specular);
             let uniforms = uniforms.add("material.shininess", gold.shininess);
+            let uniforms = uniforms.add("light.position", light.position);
+            let uniforms = uniforms.add("light.ambient", light.ambient);
+            let uniforms = uniforms.add("light.diffuse", light.diffuse);
+            let uniforms = uniforms.add("light.specular", light.specular);
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
             let object_color: [f32; 3] = Colors::RED.into();
@@ -232,6 +233,10 @@ fn main() {
             let uniforms = uniforms.add("material.diffuse", ruby.diffuse);
             let uniforms = uniforms.add("material.specular", ruby.specular);
             let uniforms = uniforms.add("material.shininess", ruby.shininess);
+            let uniforms = uniforms.add("light.position", light.position);
+            let uniforms = uniforms.add("light.ambient", light.ambient);
+            let uniforms = uniforms.add("light.diffuse", light.diffuse);
+            let uniforms = uniforms.add("light.specular", light.specular);
             frame.draw(&square_vertexes, &square_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
             frame.finish().unwrap();
