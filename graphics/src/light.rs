@@ -1,7 +1,7 @@
 use crate::GVec3;
 use glium::implement_uniform_block;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct Light {
     pub position: GVec3,
     pub ambient: GVec3,

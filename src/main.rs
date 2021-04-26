@@ -12,7 +12,7 @@ use graphics::glium::uniform;
 use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{set_fullscreen, TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_ID, TickSystem};
-use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
+use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes_2d};
 use ui::{Binding, Gesture, Input};
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
@@ -59,8 +59,10 @@ fn main() {
     let background_color = Colors::BLACK;
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
-    let gold = Material::new(GVec3::new(0.24725, 0.1995, 0.0745), GVec3::new(0.75164, 0.60648, 0.22648), GVec3::new(0.628281, 0.555802, 0.366065), 0.4);
-    let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
+    let container_diffuse = load_png_texture("resources/textures/container2.png", &display).unwrap();
+    let container_specular = load_png_texture("resources/textures/container2_specular.png", &display).unwrap();
+    let container = Material::new(container_diffuse, container_specular, 0.6);
+    // let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
         Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
         Vertex::new(1.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
@@ -70,11 +72,9 @@ fn main() {
 
     let square_vertexes = VertexBuffer::new(&display, &square).unwrap();
     let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
-    let mut gold_buffer = glium::uniforms::UniformBuffer::new(&display, gold).unwrap();
-    let ruby_buffer = glium::uniforms::UniformBuffer::new(&display, ruby).unwrap();
     let floor_model = TransformBuilder::new().scale(10., 10., 10.).build();
-    let sample_vertex_src = load_glsl("resources/shaders/material_lighting.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/material_lighting.fs.glsl");
+    let sample_vertex_src = load_glsl("resources/shaders/material_maplighting.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/material_maplighting.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -83,7 +83,7 @@ fn main() {
     let sample_program =
         glium::Program::from_source(&display, &sample_vertex_src, &sample_fragment_src, None)
             .unwrap();
-    let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
+    let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes_2d()).unwrap();
     let cube_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &cube_indexes()).unwrap();
     let cube_models = [
         TransformBuilder::new().translate(0.0, 0.0, 1.0).build(),
@@ -204,40 +204,14 @@ fn main() {
                 model: model,
                 viewPos: view_pos,
             };
-            let uniforms = uniforms.add("material.ambient", gold.ambient);
-            let uniforms = uniforms.add("material.diffuse", gold.diffuse);
-            let uniforms = uniforms.add("material.specular", gold.specular);
-            let uniforms = uniforms.add("material.shininess", gold.shininess);
+            let uniforms = uniforms.add("material.diffuse", &container.diffuse);
+            let uniforms = uniforms.add("material.specular", &container.specular);
+            let uniforms = uniforms.add("material.shininess", container.shininess);
             let uniforms = uniforms.add("light.position", light.position);
             let uniforms = uniforms.add("light.ambient", light.ambient);
             let uniforms = uniforms.add("light.diffuse", light.diffuse);
             let uniforms = uniforms.add("light.specular", light.specular);
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
-
-            let object_color: [f32; 3] = Colors::RED.into();
-            let model = floor_model.get_raw();
-            let view_pos: [f32; 3] = camera.pos.into();
-            let view: RawMat4 = camera.view().into();
-            let uniforms = uniform! {
-                lightColor: light_color,
-                objectColor: object_color,
-                lightPos: light_position,
-                vp: pre_vp,
-                view: view,
-                model: model,
-                viewPos: view_pos,
-                // material: &ruby_buffer,
-                // light: &light_buffer
-            };
-            let uniforms = uniforms.add("material.ambient", ruby.ambient);
-            let uniforms = uniforms.add("material.diffuse", ruby.diffuse);
-            let uniforms = uniforms.add("material.specular", ruby.specular);
-            let uniforms = uniforms.add("material.shininess", ruby.shininess);
-            let uniforms = uniforms.add("light.position", light.position);
-            let uniforms = uniforms.add("light.ambient", light.ambient);
-            let uniforms = uniforms.add("light.diffuse", light.diffuse);
-            let uniforms = uniforms.add("light.specular", light.specular);
-            frame.draw(&square_vertexes, &square_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
             frame.finish().unwrap();
             tick_system.end_tick(TICK_RENDER_ID);

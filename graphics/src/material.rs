@@ -1,17 +1,15 @@
 use crate::GVec3;
 use glium::implement_uniform_block;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct Material {
-    pub ambient: GVec3,
-    pub diffuse: GVec3,
-    pub specular: GVec3,
+    pub diffuse: glium::texture::Texture2d,
+    pub specular: glium::texture::Texture2d,
     pub shininess: f32,
 }
 impl Material {
-    pub fn new(ambient:  GVec3, diffuse:  GVec3, specular:  GVec3, shininess: f32) -> Self {
+    pub fn new(diffuse:  glium::texture::Texture2d, specular:  glium::texture::Texture2d, shininess: f32) -> Self {
         Self {
-            ambient,
             diffuse,
             specular,
             shininess: shininess * 128.,
