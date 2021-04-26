@@ -1,4 +1,5 @@
 use crate::GVec3;
+use glium::implement_uniform_block;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Material {
@@ -18,17 +19,3 @@ impl Material {
     }
 }
 
-// implement_uniform_block!(Material, ambient, diffuse, specular, shininess);
-
-
-
-// impl Uniforms for &Material{
-//     fn visit_values<'a, F: FnMut(&str, UniformValue<'a>)>(&'a self, mut f: F) {
-//         f("material.ambient", UniformValue::Vec3([self.ambient.x, self.ambient.y, self.ambient.z]));
-//         f("material.diffuse", UniformValue::Vec3([self.diffuse.x, self.diffuse.y, self.diffuse.z]));
-//         f("material.specular", UniformValue::Vec3([self.specular.x, self.specular.y, self.specular.z]));
-//         f("material.shininess", UniformValue::Float(self.shininess));
-//     }
-// }
-
-// implement_buffer_content!(Material);

@@ -1,14 +1,15 @@
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::f32::consts::FRAC_PI_2;
 use std::time::Instant;
 
-use graphics::{Colors, draw_params, glium, load_glsl, load_png_texture, Vertex};
+use graphics::{Colors, draw_params, glium, GVec3, Light, load_glsl, load_png_texture, Material, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
 use graphics::glium::glutin::event_loop::ControlFlow;
+use graphics::glium::glutin::GlProfile;
 use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
-use math::{CameraSystem, Perspective, RawMat4, Transform, TransformBuilder};
+use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{set_fullscreen, TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_ID, TickSystem};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes};
@@ -50,7 +51,7 @@ fn main() {
     let wb = WindowBuilder::new()
         .with_title("3D Playground")
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
-    let cb = glium::glutin::ContextBuilder::new();
+    let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
     let mut input = Input::create();
     let binding = Binding::create();
@@ -58,18 +59,22 @@ fn main() {
     let background_color = Colors::BLACK;
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
+    let gold = Material::new(GVec3::new(0.24725, 0.1995, 0.0745), GVec3::new(0.75164, 0.60648, 0.22648), GVec3::new(0.628281, 0.555802, 0.366065), 0.4);
+    let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
         Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
         Vertex::new(1.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
         Vertex::new(0.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 0.0]),
         Vertex::new(1.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 1.0])
     ];
-    let square_vertexes = VertexBuffer::new(&display, &cube_vertexes()).unwrap();
-    let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
 
+    let square_vertexes = VertexBuffer::new(&display, &square).unwrap();
+    let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
+    let mut gold_buffer = glium::uniforms::UniformBuffer::new(&display, gold).unwrap();
+    let ruby_buffer = glium::uniforms::UniformBuffer::new(&display, ruby).unwrap();
     let floor_model = TransformBuilder::new().scale(10., 10., 10.).build();
-    let sample_vertex_src = load_glsl("resources/shaders/basic_lighting.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/basic_lighting.fs.glsl");
+    let sample_vertex_src = load_glsl("resources/shaders/material_lighting.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/material_lighting.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -92,18 +97,23 @@ fn main() {
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
-    let mut light_position = vec3(1.2, 2.0, 1.5f32);
-    let mut light_bulb = TransformBuilder::new().translate(light_position.x, light_position.y, light_position.z).scale(0.2, 0.2, 0.2).build();
-
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
     let (mut w, mut h) = (display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1);
     let mut perspective = Perspective::default();
     let vp = perspective.get() * &camera.view();
     let mut pre_vp: RawMat4 = vp.into();
-    let light_color = vec3(0.33, 0.42, 0.18f32);
-    let object_color = vec3(1.0, 0.5, 0.31f32);
-
+    let light_color = GVec3::new(0.33, 0.42, 0.18f32);
+    let light_color = GVec3::new(1.0, 1.0, 1.0f32);
+    let object_color = GVec3::new(1.0, 0.5, 0.31f32);
+    let mut light_position = GVec3::new(1.2, 2.0, 2.0f32);
+    let mut light_bulb = TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build();
+    let mut light = Light::new(
+        GVec3::new(1.2, 2.0, 2.0f32),
+        GVec3::new(0.2, 0.2, 0.2),
+        GVec3::new(0.5, 0.5, 0.5),
+        GVec3::new(1.0, 1.0, 1.0));
+    // let mut light_bulb = TransformBuilder::new().translate(light.position.0, light.position.1, light.position.2).scale(0.2, 0.2, 0.2).build();
     let (mut yaw, mut pitch) = (FRAC_PI_2 * 2., 0.0);
 
     event_loop.run(move |event, _, control_flow| match event {
@@ -163,7 +173,9 @@ fn main() {
             // rotate_camera_around_scene(&mut camera, &before_run);
             if let Some(duration) = tick_system.duration_since_frame_start() {
                 rotate_light_around_scene(&mut light_position, duration as f32);
-                light_bulb.move_to(light_position.x, light_position.y, light_position.z);
+                light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
+                // rotate_light_around_scene(&mut light.position, duration as f32);
+                // light_bulb.move_to(light.position.0, light.position.1, light.position.2);
             }
             pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
@@ -180,9 +192,9 @@ fn main() {
                 model: model
             };
             frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &uniforms, &draw_params).unwrap();
-            let light_color: [f32; 3] = light_color.into();
-            let object_color: [f32; 3] = object_color.into();
-            let light_position: [f32; 3] = light_position.into();
+            // let light_color: [f32; 3] = light_color.into();
+            // let object_color: [f32; 3] = object_color.into();
+            // let light_position: [f32; 3] = light_position.into();
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
             let model = cube_models[0].get_raw();
@@ -193,12 +205,18 @@ fn main() {
                 vp: pre_vp,
                 view: view,
                 model: model,
-                viewPos: view_pos
+                viewPos: view_pos,
             };
+            let uniforms = uniforms.add("material.ambient", gold.ambient);
+            let uniforms = uniforms.add("material.diffuse", gold.diffuse);
+            let uniforms = uniforms.add("material.specular", gold.specular);
+            let uniforms = uniforms.add("material.shininess", gold.shininess);
             frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
             let object_color: [f32; 3] = Colors::RED.into();
             let model = floor_model.get_raw();
+            let view_pos: [f32; 3] = camera.pos.into();
+            let view: RawMat4 = camera.view().into();
             let uniforms = uniform! {
                 lightColor: light_color,
                 objectColor: object_color,
@@ -206,8 +224,14 @@ fn main() {
                 vp: pre_vp,
                 view: view,
                 model: model,
-                viewPos: view_pos
+                viewPos: view_pos,
+                // material: &ruby_buffer,
+                // light: &light_buffer
             };
+            let uniforms = uniforms.add("material.ambient", ruby.ambient);
+            let uniforms = uniforms.add("material.diffuse", ruby.diffuse);
+            let uniforms = uniforms.add("material.specular", ruby.specular);
+            let uniforms = uniforms.add("material.shininess", ruby.shininess);
             frame.draw(&square_vertexes, &square_indexes, &sample_program, &uniforms, &draw_params).unwrap();
 
             frame.finish().unwrap();
@@ -246,7 +270,13 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
                       &vec3(0.0, 1.0, 0.0f32));
 }
 
-fn rotate_light_around_scene(light_pos: &mut math::glm::Vec3, delta: f32) {
-    *light_pos = math::glm::rotate_vec3(light_pos, delta, &vec3(0.0, 0.0, 1.0));
+fn rotate_light_around_scene(light_pos: &mut GVec3, delta: f32) {
+    *light_pos.data = *math::glm::rotate_vec3(&mut light_pos.data, delta, &vec3(0.0, 0.0, 1.0));
+}
+
+fn _rotate_light_around_scene_raw(light_pos: &mut (f32, f32, f32), delta: f32) {
+    let tmp = vec3(light_pos.0, light_pos.1, light_pos.2);
+    let tmp = math::glm::rotate_vec3(&tmp, delta, &vec3(0.0, 0.0, 1.0));
+    *light_pos = (tmp.x, tmp.y, tmp.z);
 }
 

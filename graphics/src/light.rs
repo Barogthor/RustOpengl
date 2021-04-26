@@ -1,4 +1,5 @@
 use crate::GVec3;
+use glium::implement_uniform_block;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Light {
@@ -18,6 +19,3 @@ impl Light {
         }
     }
 }
-
-// implement_uniform_block!(Light, position, ambient, diffuse, specular );
-
