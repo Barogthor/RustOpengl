@@ -1,5 +1,7 @@
 use crate::GVec3;
 use glium::implement_uniform_block;
+use crate::uniform::{StructToUniform, UniformStorage};
+use glium::uniforms::AsUniformValue;
 
 #[derive(Debug)]
 pub struct Light {
@@ -19,3 +21,13 @@ impl Light {
         }
     }
 }
+
+impl StructToUniform for Light{
+    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>) {
+        storage.add("light.position", self.position.as_uniform_value());
+        storage.add("light.ambient", self.ambient.as_uniform_value());
+        storage.add("light.diffuse", self.diffuse.as_uniform_value());
+        storage.add("light.specular", self.specular.as_uniform_value());
+    }
+}
+

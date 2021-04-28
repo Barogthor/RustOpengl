@@ -9,6 +9,8 @@ use graphics::glium::glutin::GlProfile;
 use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
+use graphics::glium::uniforms::AsUniformValue;
+use graphics::uniform::{StructToUniform, UniformStorage};
 use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{set_fullscreen, TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_ID, TickSystem};
@@ -184,34 +186,27 @@ fn main() {
             tick_system.start_tick(TICK_RENDER_ID);
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
-            let color: [f32; 3] = uniform_color.into();
 
             let model = light_bulb.get_raw();
-            let uniforms = uniform! {
-                vp: pre_vp,
-                model: model
-            };
-            frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &uniforms, &draw_params).unwrap();
+            let mut my_storage = UniformStorage::default();
+            my_storage.add("vp", pre_vp.as_uniform_value());
+            my_storage.add("model", model.as_uniform_value());
+            frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &my_storage, &draw_params).unwrap();
+
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
             let model = cube_models[0].get_raw();
-            let uniforms = uniform! {
-                lightColor: light_color,
-                objectColor: object_color,
-                lightPos: light_position,
-                vp: pre_vp,
-                view: view,
-                model: model,
-                viewPos: view_pos,
-            };
-            let uniforms = uniforms.add("material.diffuse", &container.diffuse);
-            let uniforms = uniforms.add("material.specular", &container.specular);
-            let uniforms = uniforms.add("material.shininess", container.shininess);
-            let uniforms = uniforms.add("light.position", light.position);
-            let uniforms = uniforms.add("light.ambient", light.ambient);
-            let uniforms = uniforms.add("light.diffuse", light.diffuse);
-            let uniforms = uniforms.add("light.specular", light.specular);
-            frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &uniforms, &draw_params).unwrap();
+            let mut my_storage = UniformStorage::default();
+            my_storage.add("lightColor", light_color.as_uniform_value());
+            my_storage.add("objectColor", object_color.as_uniform_value());
+            my_storage.add("lightPos", light_position.as_uniform_value());
+            my_storage.add("vp", pre_vp.as_uniform_value());
+            my_storage.add("view", view.as_uniform_value());
+            my_storage.add("model", model.as_uniform_value());
+            my_storage.add("viewPos", view_pos.as_uniform_value());
+            container.as_uniform(&mut my_storage);
+            light.as_uniform(&mut my_storage);
+            frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
 
             frame.finish().unwrap();
             tick_system.end_tick(TICK_RENDER_ID);

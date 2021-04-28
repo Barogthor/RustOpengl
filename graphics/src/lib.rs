@@ -4,6 +4,7 @@ mod texture;
 mod material;
 mod light;
 mod math_data;
+pub mod uniform;
 
 pub use colors::Colors;
 pub use glium;
