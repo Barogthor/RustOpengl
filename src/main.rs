@@ -1,7 +1,7 @@
 use std::f32::consts::FRAC_PI_2;
 use std::time::Instant;
 
-use graphics::{Colors, draw_params, glium, GVec3, Light, load_glsl, load_png_texture, Material, Vertex};
+use graphics::{Colors, draw_params, glium, GVec3, load_glsl, load_png_texture, Material, PointLight, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
 use graphics::glium::glutin::event_loop::ControlFlow;
@@ -75,8 +75,8 @@ fn main() {
     let square_vertexes = VertexBuffer::new(&display, &square).unwrap();
     let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
     let floor_model = TransformBuilder::new().scale(10., 10., 10.).build();
-    let sample_vertex_src = load_glsl("resources/shaders/material_maplighting.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/material_maplighting.fs.glsl");
+    let sample_vertex_src = load_glsl("resources/shaders/material_lightcaster.vs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/material_lightcaster.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -108,13 +108,14 @@ fn main() {
     let light_color = GVec3::new(0.33, 0.42, 0.18f32);
     let light_color = GVec3::new(1.0, 1.0, 1.0f32);
     let object_color = GVec3::new(1.0, 0.5, 0.31f32);
-    let mut light_position = GVec3::new(1.2, 2.0, 2.0f32);
+    let light_position = GVec3::new(1.2, 2.0, 2.0f32);
     let mut light_bulb = TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build();
-    let mut light = Light::new(
+    let mut light = PointLight::new(
         GVec3::new(1.2, 2.0, 2.0f32),
-        GVec3::new(0.2, 0.2, 0.2),
+        GVec3::new(0.1, 0.1, 0.1),
         GVec3::new(0.5, 0.5, 0.5),
-        GVec3::new(1.0, 1.0, 1.0));
+        GVec3::new(1.0, 1.0, 1.0),
+        1.0, 0.045, 0.0075);
     // let mut light_bulb = TransformBuilder::new().translate(light.position.0, light.position.1, light.position.2).scale(0.2, 0.2, 0.2).build();
     let (mut yaw, mut pitch) = (FRAC_PI_2 * 2., 0.0);
 
@@ -195,18 +196,20 @@ fn main() {
 
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
-            let model = cube_models[0].get_raw();
-            let mut my_storage = UniformStorage::default();
-            my_storage.add("lightColor", light_color.as_uniform_value());
-            my_storage.add("objectColor", object_color.as_uniform_value());
-            my_storage.add("lightPos", light_position.as_uniform_value());
-            my_storage.add("vp", pre_vp.as_uniform_value());
-            my_storage.add("view", view.as_uniform_value());
-            my_storage.add("model", model.as_uniform_value());
-            my_storage.add("viewPos", view_pos.as_uniform_value());
-            container.as_uniform(&mut my_storage);
-            light.as_uniform(&mut my_storage);
-            frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
+            for x in cube_models.iter() {
+                let model = x.get_raw();
+                let mut my_storage = UniformStorage::default();
+                my_storage.add("lightColor", light_color.as_uniform_value());
+                my_storage.add("objectColor", object_color.as_uniform_value());
+                my_storage.add("lightPos", light_position.as_uniform_value());
+                my_storage.add("vp", pre_vp.as_uniform_value());
+                my_storage.add("view", view.as_uniform_value());
+                my_storage.add("model", model.as_uniform_value());
+                my_storage.add("viewPos", view_pos.as_uniform_value());
+                container.as_uniform(&mut my_storage);
+                light.as_uniform(&mut my_storage);
+                frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
+            }
 
             frame.finish().unwrap();
             tick_system.end_tick(TICK_RENDER_ID);
