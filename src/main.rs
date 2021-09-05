@@ -123,10 +123,11 @@ fn main() {
             dir.data = dir.data.normalize();
             dir
         },
-        GVec3::new(0.1, 0.1, 0.1),
+        GVec3::new(0.05, 0.05, 0.05),
         GVec3::new(0.5, 0.5, 0.5),
         GVec3::new(1.0, 1.0, 1.0),
-        1.0, 0.045, 0.0075, to_radians(12.5).cos(),
+        1.0, 0.045, 0.0075,
+        to_radians(12.5).cos(), to_radians(17.5).cos(),
     );
     // let mut light_bulb = TransformBuilder::new().translate(light.position.0, light.position.1, light.position.2).scale(0.2, 0.2, 0.2).build();
     let (mut yaw, mut pitch) = (FRAC_PI_2 * 2., 0.0);
