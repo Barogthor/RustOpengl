@@ -20,7 +20,7 @@ use std::collections::HashMap;
 // }
 
 pub trait StructToUniform {
-    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>);
+    fn as_uniform<'a>(&'a self, struct_name: &str, storage: &mut UniformStorage<'a>);
 }
 
 #[derive(Default, Clone)]

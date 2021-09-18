@@ -31,14 +31,14 @@ impl PointLight {
 }
 
 impl StructToUniform for PointLight {
-    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>) {
-        storage.add("light.position", self.position.as_uniform_value());
-        storage.add("light.ambient", self.ambient.as_uniform_value());
-        storage.add("light.diffuse", self.diffuse.as_uniform_value());
-        storage.add("light.specular", self.specular.as_uniform_value());
-        storage.add("light.constant", self.constant.as_uniform_value());
-        storage.add("light.linear", self.linear.as_uniform_value());
-        storage.add("light.quadratic", self.quadratic.as_uniform_value());
+    fn as_uniform<'a>(&'a self, struct_name: &str, storage: &mut UniformStorage<'a>) {
+        storage.add(&*format!("{}.position", struct_name), self.position.as_uniform_value());
+        storage.add(&*format!("{}.ambient", struct_name), self.ambient.as_uniform_value());
+        storage.add(&*format!("{}.diffuse", struct_name), self.diffuse.as_uniform_value());
+        storage.add(&*format!("{}.specular", struct_name), self.specular.as_uniform_value());
+        storage.add(&*format!("{}.constant", struct_name), self.constant.as_uniform_value());
+        storage.add(&*format!("{}.linear", struct_name), self.linear.as_uniform_value());
+        storage.add(&*format!("{}.quadratic", struct_name), self.quadratic.as_uniform_value());
     }
 }
 
@@ -63,11 +63,11 @@ impl DirectionalLight {
 }
 
 impl StructToUniform for DirectionalLight{
-    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>) {
-        storage.add("light.direction", self.direction.as_uniform_value());
-        storage.add("light.ambient", self.ambient.as_uniform_value());
-        storage.add("light.diffuse", self.diffuse.as_uniform_value());
-        storage.add("light.specular", self.specular.as_uniform_value());
+    fn as_uniform<'a>(&'a self, struct_name: &str, storage: &mut UniformStorage<'a>) {
+        storage.add(&*format!("{}.direction", struct_name), self.direction.as_uniform_value());
+        storage.add(&*format!("{}.ambient", struct_name), self.ambient.as_uniform_value());
+        storage.add(&*format!("{}.diffuse", struct_name), self.diffuse.as_uniform_value());
+        storage.add(&*format!("{}.specular", struct_name), self.specular.as_uniform_value());
     }
 }
 
@@ -104,16 +104,16 @@ impl SpotLight {
 }
 
 impl StructToUniform for SpotLight{
-    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>) {
-        storage.add("light.position", self.position.as_uniform_value());
-        storage.add("light.direction", self.direction.as_uniform_value());
-        storage.add("light.ambient", self.ambient.as_uniform_value());
-        storage.add("light.diffuse", self.diffuse.as_uniform_value());
-        storage.add("light.specular", self.specular.as_uniform_value());
-        storage.add("light.cutOff", self.cut_off.as_uniform_value());
-        storage.add("light.outerCutOff", self.outer_cut_off.as_uniform_value());
-        storage.add("light.constant", self.constant.as_uniform_value());
-        storage.add("light.linear", self.linear.as_uniform_value());
-        storage.add("light.quadratic", self.quadratic.as_uniform_value());
+    fn as_uniform<'a>(&'a self, struct_name: &str, storage: &mut UniformStorage<'a>) {
+        storage.add(&*format!("{}.position", struct_name), self.position.as_uniform_value());
+        storage.add(&*format!("{}.direction", struct_name), self.direction.as_uniform_value());
+        storage.add(&*format!("{}.ambient", struct_name), self.ambient.as_uniform_value());
+        storage.add(&*format!("{}.diffuse", struct_name), self.diffuse.as_uniform_value());
+        storage.add(&*format!("{}.specular", struct_name), self.specular.as_uniform_value());
+        storage.add(&*format!("{}.cutOff", struct_name), self.cut_off.as_uniform_value());
+        storage.add(&*format!("{}.outerCutOff", struct_name), self.outer_cut_off.as_uniform_value());
+        storage.add(&*format!("{}.constant", struct_name), self.constant.as_uniform_value());
+        storage.add(&*format!("{}.linear", struct_name), self.linear.as_uniform_value());
+        storage.add(&*format!("{}.quadratic", struct_name), self.quadratic.as_uniform_value());
     }
 }

@@ -1,7 +1,7 @@
 use std::f32::consts::FRAC_PI_2;
 use std::time::Instant;
 
-use graphics::{Colors, draw_params, glium, GVec3, load_glsl, load_png_texture, Material, PointLight, SpotLight, Vertex};
+use graphics::{Colors, DirectionalLight, draw_params, glium, GVec3, load_glsl, load_png_texture, Material, PointLight, SpotLight, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
 use graphics::glium::glutin::event_loop::ControlFlow;
@@ -63,7 +63,7 @@ fn main() {
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
     let container_diffuse = load_png_texture("resources/textures/container2.png", &display).unwrap();
     let container_specular = load_png_texture("resources/textures/container2_specular.png", &display).unwrap();
-    let container = Material::new(container_diffuse, container_specular, 0.6);
+    let crate_mat = Material::new(container_diffuse, container_specular, 0.6);
     // let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
         Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
@@ -110,6 +110,11 @@ fn main() {
     let object_color = GVec3::new(1.0, 0.5, 0.31f32);
     let light_position = GVec3::new(1.2, 2.0, 2.0f32);
     let mut light_bulb = TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build();
+    let mut dir_light = DirectionalLight::new(
+        GVec3::new(1.2, 2.0, 2.0f32),
+        GVec3::new(0.1, 0.1, 0.1),
+        GVec3::new(0.5, 0.5, 0.5),
+        GVec3::new(1.0, 1.0, 1.0));
     let mut light_point = PointLight::new(
         GVec3::new(1.2, 2.0, 2.0f32),
         GVec3::new(0.1, 0.1, 0.1),
@@ -222,8 +227,9 @@ fn main() {
                 my_storage.add("view", view.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
                 my_storage.add("viewPos", view_pos.as_uniform_value());
-                container.as_uniform(&mut my_storage);
-                light_spot.as_uniform(&mut my_storage);
+                crate_mat.as_uniform("material", &mut my_storage);
+                dir_light.as_uniform("dirLight", &mut my_storage);
+                light_spot.as_uniform("spotLight", &mut my_storage);
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 

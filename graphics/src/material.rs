@@ -19,10 +19,10 @@ impl Material {
     }
 }
 impl StructToUniform for Material{
-    fn as_uniform<'a>(&'a self, storage: &mut UniformStorage<'a>) {
-        storage.add("material.diffuse", UniformValue::Texture2d(&self.diffuse, None));
-        storage.add("material.specular", UniformValue::Texture2d(&self.specular, None));
-        storage.add("material.shininess", UniformValue::Float(self.shininess));
+    fn as_uniform<'a>(&'a self, struct_name: &str, storage: &mut UniformStorage<'a>) {
+        storage.add(&*format!("{}.diffuse", struct_name), UniformValue::Texture2d(&self.diffuse, None));
+        storage.add(&*format!("{}.specular", struct_name), UniformValue::Texture2d(&self.specular, None));
+        storage.add(&*format!("{}.shininess", struct_name), UniformValue::Float(self.shininess));
     }
 }
 
