@@ -116,10 +116,6 @@ fn main() {
     let light_color = GVec3::new(0.33, 0.42, 0.18f32);
     let light_color = GVec3::new(1.0, 1.0, 1.0f32);
     let object_color = GVec3::new(1.0, 0.5, 0.31f32);
-    let light_position = GVec3::new(1.2, 2.0, 2.0f32);
-    let mut light_bulbs = [
-        TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build()
-    ];
     let mut dir_light = DirectionalLight::new(
         GVec3::new(1.2, 2.0, 2.0f32),
         GVec3::new(0.1, 0.1, 0.1),
@@ -131,7 +127,31 @@ fn main() {
             GVec3::new(0.1, 0.1, 0.1),
             GVec3::new(0.5, 0.5, 0.5),
             GVec3::new(1.0, 1.0, 1.0),
-            1.0, 0.045, 0.0075)
+            1.0, 0.045, 0.0075),
+        PointLight::new(
+            GVec3::new(2.3, -3.3, -4.0),
+            GVec3::new(0.1, 0.1, 0.1),
+            GVec3::new(0.5, 0.5, 0.5),
+            GVec3::new(1.0, 1.0, 1.0),
+            1.0, 0.045, 0.0075),
+        PointLight::new(
+            GVec3::new(-4.0, 2.0, -12.0),
+            GVec3::new(0.1, 0.1, 0.1),
+            GVec3::new(0.5, 0.5, 0.5),
+            GVec3::new(1.0, 1.0, 1.0),
+            1.0, 0.045, 0.0075),
+        PointLight::new(
+            GVec3::new(0.0, 0.0, -3.0),
+            GVec3::new(0.1, 0.1, 0.1),
+            GVec3::new(0.5, 0.5, 0.5),
+            GVec3::new(1.0, 1.0, 1.0),
+            1.0, 0.045, 0.0075),
+    ];
+    let mut light_bulbs = [
+        TransformBuilder::new().translate(light_points[0].position.data.x, light_points[0].position.data.y, light_points[0].position.data.z).scale(0.2, 0.2, 0.2).build(),
+        TransformBuilder::new().translate(light_points[1].position.data.x, light_points[1].position.data.y, light_points[1].position.data.z).scale(0.2, 0.2, 0.2).build(),
+        TransformBuilder::new().translate(light_points[2].position.data.x, light_points[2].position.data.y, light_points[2].position.data.z).scale(0.2, 0.2, 0.2).build(),
+        TransformBuilder::new().translate(light_points[3].position.data.x, light_points[3].position.data.y, light_points[3].position.data.z).scale(0.2, 0.2, 0.2).build(),
     ];
     let mut light_spot = SpotLight::new(
         GVec3::new(4.0, 4.0, 2.0),
@@ -216,11 +236,14 @@ fn main() {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
 
-            let model = light_bulbs[0].get_raw();
-            let mut my_storage = UniformStorage::default();
-            my_storage.add("vp", pre_vp.as_uniform_value());
-            my_storage.add("model", model.as_uniform_value());
-            frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &my_storage, &draw_params).unwrap();
+
+            for i in 0..light_bulbs.len() {
+                let model = light_bulbs[i].get_raw();
+                let mut my_storage = UniformStorage::default();
+                my_storage.add("vp", pre_vp.as_uniform_value());
+                my_storage.add("model", model.as_uniform_value());
+                frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &my_storage, &draw_params).unwrap();
+            }
 
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
@@ -237,7 +260,9 @@ fn main() {
                 rock_soil_mat.as_uniform("material", &mut my_storage);
                 dir_light.as_uniform("dirLight", &mut my_storage);
                 light_spot.as_uniform("spotLight", &mut my_storage);
-                light_points[0].as_uniform("pointLights[0]", &mut my_storage);
+                for (i, lp) in light_points.iter().enumerate() {
+                    lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
+                }
                 frame.draw(&square_vertexes, &square_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 
@@ -255,7 +280,9 @@ fn main() {
                 crate_mat.as_uniform("material", &mut my_storage);
                 dir_light.as_uniform("dirLight", &mut my_storage);
                 light_spot.as_uniform("spotLight", &mut my_storage);
-                light_points[0].as_uniform("pointLights[0]", &mut my_storage);
+                for (i, lp) in light_points.iter().enumerate() {
+                    lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
+                }
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 

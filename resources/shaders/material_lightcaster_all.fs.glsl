@@ -55,7 +55,7 @@ uniform bool toggleTorchLight;
 uniform Material material;
 uniform SpotLight spotLight;
 uniform DirectionLight dirLight;
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 //uniform PointLight pointLight;
 
