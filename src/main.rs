@@ -1,7 +1,7 @@
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Instant;
 
-use graphics::{Colors, DirectionalLight, draw_params, glium, GVec3, load_glsl, load_png_texture, Material, PointLight, SpotLight, Vertex};
+use graphics::{Colors, DirectionalLight, draw_params, glium, GVec3, load_glsl, load_png_texture, load_tif_texture, Material, PointLight, SpotLight, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
 use graphics::glium::glutin::event_loop::ControlFlow;
@@ -58,25 +58,33 @@ fn main() {
     let mut input = Input::create();
     let binding = Binding::create();
     let mut fullscreen = false;
+    let mut toggle_torchlight = true;
     let background_color = Colors::BLACK;
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
+    let rock_soil_albedo = load_tif_texture("resources/textures/TexturesCom_Rock_Soil_512_albedo.tif", &display).unwrap();
+    let rock_soil_rough = load_tif_texture("resources/textures/TexturesCom_Rock_Soil_512_roughness.tif", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
     let container_diffuse = load_png_texture("resources/textures/container2.png", &display).unwrap();
     let container_specular = load_png_texture("resources/textures/container2_specular.png", &display).unwrap();
     let crate_mat = Material::new(container_diffuse, container_specular, 0.6);
+    let rock_soil_mat = Material::new(rock_soil_albedo, rock_soil_rough, 1.);
     // let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
-        Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
-        Vertex::new(1.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
+        Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
+        Vertex::new(1.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 1.0]),
         Vertex::new(0.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 0.0]),
         Vertex::new(1.0, 1.0, 0.0, [0.0, 0.0, 1.0], [0.0, 1.0])
     ];
-
     let square_vertexes = VertexBuffer::new(&display, &square).unwrap();
     let square_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0, 1, 3, 3, 2, 0]).unwrap();
-    let floor_model = TransformBuilder::new().scale(10., 10., 10.).build();
+
+    let floor_model = TransformBuilder::new()
+        .scale(100., 100., 100.)
+        .rotate(-PI / 2., &x_axis)
+        .translate(-0.2, -0.4, -0.1)
+        .build();
     let sample_vertex_src = load_glsl("resources/shaders/material_lightcaster.vs.glsl");
-    let sample_fragment_src = load_glsl("resources/shaders/material_lightcaster_spot.fs.glsl");
+    let sample_fragment_src = load_glsl("resources/shaders/material_lightcaster_all.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -109,18 +117,22 @@ fn main() {
     let light_color = GVec3::new(1.0, 1.0, 1.0f32);
     let object_color = GVec3::new(1.0, 0.5, 0.31f32);
     let light_position = GVec3::new(1.2, 2.0, 2.0f32);
-    let mut light_bulb = TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build();
+    let mut light_bulbs = [
+        TransformBuilder::new().translate(light_position.data.x, light_position.data.y, light_position.data.z).scale(0.2, 0.2, 0.2).build()
+    ];
     let mut dir_light = DirectionalLight::new(
         GVec3::new(1.2, 2.0, 2.0f32),
         GVec3::new(0.1, 0.1, 0.1),
         GVec3::new(0.5, 0.5, 0.5),
         GVec3::new(1.0, 1.0, 1.0));
-    let mut light_point = PointLight::new(
-        GVec3::new(1.2, 2.0, 2.0f32),
-        GVec3::new(0.1, 0.1, 0.1),
-        GVec3::new(0.5, 0.5, 0.5),
-        GVec3::new(1.0, 1.0, 1.0),
-        1.0, 0.045, 0.0075);
+    let mut light_points = [
+        PointLight::new(
+            GVec3::new(1.2, 2.0, 2.0f32),
+            GVec3::new(0.1, 0.1, 0.1),
+            GVec3::new(0.5, 0.5, 0.5),
+            GVec3::new(1.0, 1.0, 1.0),
+            1.0, 0.045, 0.0075)
+    ];
     let mut light_spot = SpotLight::new(
         GVec3::new(4.0, 4.0, 2.0),
         {
@@ -198,8 +210,8 @@ fn main() {
             if let Some(duration) = tick_system.duration_since_frame_start() {
                 // rotate_light_around_scene(&mut light_position, duration as f32);
                 // light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
-                rotate_light_around_scene(&mut light_point.position, duration as f32);
-                light_bulb.move_to(light_point.position.data.x, light_point.position.data.y, light_point.position.data.z);
+                rotate_light_around_scene(&mut light_points[0].position, duration as f32);
+                light_bulbs[0].move_to(light_points[0].position.data.x, light_points[0].position.data.y, light_points[0].position.data.z);
             }
             pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
@@ -209,7 +221,7 @@ fn main() {
             let mut frame = display.draw();
             frame.clear_color_and_depth(background_color.into(), 1.);
 
-            let model = light_bulb.get_raw();
+            let model = light_bulbs[0].get_raw();
             let mut my_storage = UniformStorage::default();
             my_storage.add("vp", pre_vp.as_uniform_value());
             my_storage.add("model", model.as_uniform_value());
@@ -217,19 +229,38 @@ fn main() {
 
             let view_pos: [f32; 3] = camera.pos.into();
             let view: RawMat4 = camera.view().into();
+            {
+                let model = floor_model.get_raw();
+                let mut my_storage = UniformStorage::default();
+                my_storage.add("lightColor", light_color.as_uniform_value());
+                my_storage.add("objectColor", object_color.as_uniform_value());
+                my_storage.add("vp", pre_vp.as_uniform_value());
+                my_storage.add("view", view.as_uniform_value());
+                my_storage.add("model", model.as_uniform_value());
+                my_storage.add("viewPos", view_pos.as_uniform_value());
+                my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
+                rock_soil_mat.as_uniform("material", &mut my_storage);
+                dir_light.as_uniform("dirLight", &mut my_storage);
+                light_spot.as_uniform("spotLight", &mut my_storage);
+                light_points[0].as_uniform("pointLight", &mut my_storage);
+                frame.draw(&square_vertexes, &square_indexes, &sample_program, &my_storage, &draw_params).unwrap();
+            }
+
             for x in cube_models.iter() {
                 let model = x.get_raw();
                 let mut my_storage = UniformStorage::default();
                 my_storage.add("lightColor", light_color.as_uniform_value());
                 my_storage.add("objectColor", object_color.as_uniform_value());
-                my_storage.add("lightPos", light_position.as_uniform_value());
+                // my_storage.add("lightPos", light_point.position.as_uniform_value());
                 my_storage.add("vp", pre_vp.as_uniform_value());
                 my_storage.add("view", view.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
                 my_storage.add("viewPos", view_pos.as_uniform_value());
+                my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
                 crate_mat.as_uniform("material", &mut my_storage);
                 dir_light.as_uniform("dirLight", &mut my_storage);
                 light_spot.as_uniform("spotLight", &mut my_storage);
+                light_points[0].as_uniform("pointLights[0]", &mut my_storage);
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 
@@ -243,6 +274,9 @@ fn main() {
             }
             if input.poll_gesture(&binding.fullscreen) {
                 set_fullscreen(&display, &mut fullscreen);
+            }
+            if input.poll_gesture(&binding.toggle_torch_light) {
+                toggle_torchlight = !toggle_torchlight;
             }
             input.tick_reset();
             tick_system.end_tick(TICK_FRAME_ID);
@@ -270,7 +304,7 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
 }
 
 fn rotate_light_around_scene(light_pos: &mut GVec3, delta: f32) {
-    *light_pos.data = *math::glm::rotate_vec3(&mut light_pos.data, delta, &vec3(0.0, 0.0, 1.0));
+    *light_pos.data = *math::glm::rotate_vec3(&mut light_pos.data, 0.005 / delta, &vec3(0.0, 0.0, 1.0));
 }
 
 fn _rotate_light_around_scene_raw(light_pos: &mut (f32, f32, f32), delta: f32) {
