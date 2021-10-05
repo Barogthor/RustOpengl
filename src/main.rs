@@ -207,12 +207,7 @@ fn main() {
                 light_spot.position.data = camera.pos.clone();
             }
             // rotate_camera_around_scene(&mut camera, &before_run);
-            if let Some(duration) = tick_system.duration_since_frame_start() {
-                // rotate_light_around_scene(&mut light_position, duration as f32);
-                // light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
-                rotate_light_around_scene(&mut light_points[0].position, duration as f32);
-                light_bulbs[0].move_to(light_points[0].position.data.x, light_points[0].position.data.y, light_points[0].position.data.z);
-            }
+
             pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
         }
@@ -242,7 +237,7 @@ fn main() {
                 rock_soil_mat.as_uniform("material", &mut my_storage);
                 dir_light.as_uniform("dirLight", &mut my_storage);
                 light_spot.as_uniform("spotLight", &mut my_storage);
-                light_points[0].as_uniform("pointLight", &mut my_storage);
+                light_points[0].as_uniform("pointLights[0]", &mut my_storage);
                 frame.draw(&square_vertexes, &square_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 
@@ -278,6 +273,12 @@ fn main() {
             if input.poll_gesture(&binding.toggle_torch_light) {
                 toggle_torchlight = !toggle_torchlight;
             }
+            if let Some(duration) = tick_system.duration_since_frame_start() {
+                // rotate_light_around_scene(&mut light_position, duration as f32);
+                // light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
+                rotate_light_around_scene(&mut light_points[0].position, duration as f32);
+                light_bulbs[0].move_to(light_points[0].position.data.x, light_points[0].position.data.y, light_points[0].position.data.z);
+            }
             input.tick_reset();
             tick_system.end_tick(TICK_FRAME_ID);
             // tick_system.debug_tick(TICK_FRAME_ID);
@@ -304,7 +305,7 @@ fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {
 }
 
 fn rotate_light_around_scene(light_pos: &mut GVec3, delta: f32) {
-    *light_pos.data = *math::glm::rotate_vec3(&mut light_pos.data, 0.005 / delta, &vec3(0.0, 0.0, 1.0));
+    *light_pos.data = *math::glm::rotate_vec3(&mut light_pos.data, PI / 14. * delta, &vec3(0.0, 0.0, 1.0));
 }
 
 fn _rotate_light_around_scene_raw(light_pos: &mut (f32, f32, f32), delta: f32) {
