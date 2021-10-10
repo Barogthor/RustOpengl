@@ -21,7 +21,7 @@ pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
 pub type VertexBuffer = glium::VertexBuffer<Vertex>;
 pub type IndexBuffer = glium::IndexBuffer<u16>;
 
-const CAMERA_SPEED: f32 = 0.25;
+const CAMERA_SPEED: f32 = 10.;
 const PITCH_MAX: f32 = 1.55334f32;
 const WIDTH: f32 = 1024f32;
 const HEIGHT: f32 = 768f32;
@@ -179,56 +179,7 @@ fn main() {
             }
         },
         Event::MainEventsCleared => {
-            if input.poll_gesture(&binding.toggle_mouse) {
-                let window_context = display.gl_window();
-                let window = window_context.window();
-                // let win_pos = window.set_cursor_visible(false);
-                let mouse = &input.poll_analog2d(&binding.look);
 
-                w = display.get_framebuffer_dimensions().0;
-                h = display.get_framebuffer_dimensions().1;
-                window.set_cursor_position(PhysicalPosition::new(w / 2, h / 2)).unwrap();
-                yaw += mouse.x;
-                pitch += mouse.y;
-                if pitch > PITCH_MAX {
-                    pitch = PITCH_MAX;
-                }
-                if pitch < -PITCH_MAX {
-                    pitch = -PITCH_MAX;
-                }
-                let direction = vec3(
-                    yaw.cos() * pitch.cos(),
-                    pitch.sin(),
-                    yaw.sin() * pitch.cos(),
-                );
-                camera.front = direction.normalize();
-                light_spot.direction.data = direction.normalize();
-            }
-            let step = input.poll_analog2d(&binding.scroll);
-            if !float_eq(step.y, 0.0, 1e-3) {
-                perspective.fov -= step.y;
-                if perspective.fov < FOV_MIN {
-                    perspective.fov = FOV_MIN;
-                } else if perspective.fov > FOV_MAX {
-                    perspective.fov = FOV_MAX;
-                }
-            }
-
-            if input.poll_gesture(&binding.swap_color) {
-                uniform_color = Colors::random();
-            }
-            let step = input.poll_analog2d(&binding.movement);
-            if step.y != 0. {
-                camera.pos += camera.front * step.y * CAMERA_SPEED;
-                light_spot.position.data = camera.pos.clone();
-            }
-            if step.x != 0. {
-                camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED;
-                light_spot.position.data = camera.pos.clone();
-            }
-            // rotate_camera_around_scene(&mut camera, &before_run);
-
-            pre_vp = (perspective.get() * camera.view()).into();
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
@@ -300,7 +251,59 @@ fn main() {
             if input.poll_gesture(&binding.toggle_torch_light) {
                 toggle_torchlight = !toggle_torchlight;
             }
+            if input.poll_gesture(&binding.toggle_mouse) {
+                let window_context = display.gl_window();
+                let window = window_context.window();
+                // let win_pos = window.set_cursor_visible(false);
+                let mouse = &input.poll_analog2d(&binding.look);
+
+                w = display.get_framebuffer_dimensions().0;
+                h = display.get_framebuffer_dimensions().1;
+                window.set_cursor_position(PhysicalPosition::new(w / 2, h / 2)).unwrap();
+                yaw += mouse.x;
+                pitch += mouse.y;
+                if pitch > PITCH_MAX {
+                    pitch = PITCH_MAX;
+                }
+                if pitch < -PITCH_MAX {
+                    pitch = -PITCH_MAX;
+                }
+                let direction = vec3(
+                    yaw.cos() * pitch.cos(),
+                    pitch.sin(),
+                    yaw.sin() * pitch.cos(),
+                );
+                camera.front = direction.normalize();
+                light_spot.direction.data = direction.normalize();
+            }
+            let step = input.poll_analog2d(&binding.scroll);
+            if !float_eq(step.y, 0.0, 1e-3) {
+                perspective.fov -= step.y;
+                if perspective.fov < FOV_MIN {
+                    perspective.fov = FOV_MIN;
+                } else if perspective.fov > FOV_MAX {
+                    perspective.fov = FOV_MAX;
+                }
+            }
+
+            if input.poll_gesture(&binding.swap_color) {
+                uniform_color = Colors::random();
+            }
+
+            // rotate_camera_around_scene(&mut camera, &before_run);
+
+            pre_vp = (perspective.get() * camera.view()).into();
+
             if let Some(duration) = tick_system.duration_since_frame_start() {
+                let step = input.poll_analog2d(&binding.movement);
+                if step.y != 0. {
+                    camera.pos += camera.front * step.y * CAMERA_SPEED * (duration as f32);
+                    light_spot.position.data = camera.pos.clone();
+                }
+                if step.x != 0. {
+                    camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED * (duration as f32);
+                    light_spot.position.data = camera.pos.clone();
+                }
                 // rotate_light_around_scene(&mut light_position, duration as f32);
                 // light_bulb.move_to(light_position.data.x, light_position.data.y, light_position.data.z);
                 rotate_light_around_scene(&mut light_points[0].position, duration as f32);

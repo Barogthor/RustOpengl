@@ -268,7 +268,7 @@ impl Binding {
                     Gesture::KeyHold(Key::S),
                     Gesture::KeyHold(Key::Down),
                 ]),
-                step: 0.015,
+                step: 0.15,
             },
             look: Analog2d::Mouse { sensitivity: 0.015 },
             jump: Gesture::KeyHold(Key::Space),
