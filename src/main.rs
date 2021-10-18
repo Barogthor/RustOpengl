@@ -1,6 +1,7 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Instant;
 
+use debug_ui::EguiGlium;
 use graphics::{Colors, DirectionalLight, draw_params, glium, GVec3, load_glsl, load_png_texture, load_tif_texture, Material, PointLight, SpotLight, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
@@ -13,8 +14,10 @@ use graphics::glium::uniforms::AsUniformValue;
 use graphics::uniform::{StructToUniform, UniformStorage};
 use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
-use rust_opengl::{set_fullscreen, TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_ID, TickSystem};
+use rust_opengl::{show_window, State};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes_2d};
+use rust_opengl::set_fullscreen;
+use rust_opengl::tick::{TICK_DRAW_ID, TICK_FRAME_ID, TICK_RENDER_EGUI_ID, TICK_RENDER_ID, TickSystem};
 use ui::{Binding, Gesture, Input};
 
 pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
@@ -23,7 +26,7 @@ pub type IndexBuffer = glium::IndexBuffer<u16>;
 
 const CAMERA_SPEED: f32 = 10.;
 const PITCH_MAX: f32 = 1.55334f32;
-const WIDTH: f32 = 1024f32;
+const WIDTH: f32 = 1366f32;
 const HEIGHT: f32 = 768f32;
 const FOV_MIN: f32 = 0.0174533f32;
 const FOV_MAX: f32 = 0.785398f32;
@@ -55,6 +58,7 @@ fn main() {
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
+    let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
     let binding = Binding::create();
     let mut fullscreen = false;
@@ -113,39 +117,36 @@ fn main() {
     let mut perspective = Perspective::default();
     let vp = perspective.get() * &camera.view();
     let mut pre_vp: RawMat4 = vp.into();
-    let light_color = GVec3::new(0.33, 0.42, 0.18f32);
-    let light_color = GVec3::new(1.0, 1.0, 1.0f32);
-    let object_color = GVec3::new(1.0, 0.5, 0.31f32);
     let mut dir_light = DirectionalLight::new(
-        GVec3::new(1.2, 2.0, 2.0f32),
-        GVec3::new(0.1, 0.1, 0.1),
-        GVec3::new(0.5, 0.5, 0.5),
-        GVec3::new(1.0, 1.0, 1.0));
+        GVec3::new(1.2, 2.0, 2.0),
+        GVec3::new(0.05, 0.05, 0.1),
+        GVec3::new(0.2, 0.2, 0.7),
+        GVec3::new(0.7, 0.7, 0.7));
     let mut light_points = [
         PointLight::new(
             GVec3::new(1.2, 2.0, 2.0f32),
             GVec3::new(0.1, 0.1, 0.1),
             GVec3::new(0.5, 0.5, 0.5),
             GVec3::new(1.0, 1.0, 1.0),
-            1.0, 0.045, 0.0075),
+            1.0, 0.09, 0.0032),
         PointLight::new(
             GVec3::new(2.3, -3.3, -4.0),
             GVec3::new(0.1, 0.1, 0.1),
             GVec3::new(0.5, 0.5, 0.5),
             GVec3::new(1.0, 1.0, 1.0),
-            1.0, 0.045, 0.0075),
+            1.0, 0.09, 0.0032),
         PointLight::new(
             GVec3::new(-4.0, 2.0, -12.0),
             GVec3::new(0.1, 0.1, 0.1),
             GVec3::new(0.5, 0.5, 0.5),
             GVec3::new(1.0, 1.0, 1.0),
-            1.0, 0.045, 0.0075),
+            1.0, 0.09, 0.0032),
         PointLight::new(
             GVec3::new(0.0, 0.0, -3.0),
             GVec3::new(0.1, 0.1, 0.1),
             GVec3::new(0.5, 0.5, 0.5),
             GVec3::new(1.0, 1.0, 1.0),
-            1.0, 0.045, 0.0075),
+            1.0, 0.09, 0.0032),
     ];
     let mut light_bulbs = [
         TransformBuilder::new().translate(light_points[0].position.data.x, light_points[0].position.data.y, light_points[0].position.data.z).scale(0.2, 0.2, 0.2).build(),
@@ -168,6 +169,7 @@ fn main() {
     );
     // let mut light_bulb = TransformBuilder::new().translate(light.position.0, light.position.1, light.position.2).scale(0.2, 0.2, 0.2).build();
     let (mut yaw, mut pitch) = (FRAC_PI_2 * 2., 0.0);
+    let mut state = State::default();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::NewEvents(cause) => match cause {
@@ -179,13 +181,25 @@ fn main() {
             }
         },
         Event::MainEventsCleared => {
-
+            update_light_color(&mut light_points, &mut state);
             display.gl_window().window().request_redraw();
         }
         Event::RedrawRequested(_) => {
             tick_system.start_tick(TICK_RENDER_ID);
+
+            egui.begin_frame(&display);
+
+            show_window(&mut egui, &mut state);
+
+            let (needs_repaint, shapes) = egui.end_frame(&display);
+
+
             let mut frame = display.draw();
-            frame.clear_color_and_depth(background_color.into(), 1.);
+            let bgc = {
+                let c = &state.background_color;
+                (c[0], c[1], c[2], c[3])
+            };
+            frame.clear_color_and_depth(bgc, 1.);
 
 
             for i in 0..light_bulbs.len() {
@@ -193,6 +207,7 @@ fn main() {
                 let mut my_storage = UniformStorage::default();
                 my_storage.add("vp", pre_vp.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
+                my_storage.add("color", state.light_bulb_color[i].as_uniform_value());
                 frame.draw(&cube_vertexes, &cube_indexes, &lighting_program, &my_storage, &draw_params).unwrap();
             }
 
@@ -201,8 +216,6 @@ fn main() {
             {
                 let model = floor_model.get_raw();
                 let mut my_storage = UniformStorage::default();
-                my_storage.add("lightColor", light_color.as_uniform_value());
-                my_storage.add("objectColor", object_color.as_uniform_value());
                 my_storage.add("vp", pre_vp.as_uniform_value());
                 my_storage.add("view", view.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
@@ -220,9 +233,6 @@ fn main() {
             for x in cube_models.iter() {
                 let model = x.get_raw();
                 let mut my_storage = UniformStorage::default();
-                my_storage.add("lightColor", light_color.as_uniform_value());
-                my_storage.add("objectColor", object_color.as_uniform_value());
-                // my_storage.add("lightPos", light_point.position.as_uniform_value());
                 my_storage.add("vp", pre_vp.as_uniform_value());
                 my_storage.add("view", view.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
@@ -237,12 +247,16 @@ fn main() {
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
 
+            tick_system.start_tick(TICK_RENDER_EGUI_ID);
+            egui.paint(&display, &mut frame, shapes);
+            tick_system.end_tick(TICK_RENDER_EGUI_ID);
+
             frame.finish().unwrap();
             tick_system.end_tick(TICK_RENDER_ID);
             // tick_system.debug_tick(TICK_RENDER_ID);
         }
         Event::RedrawEventsCleared => {
-            if input.poll_gesture(&binding.exit) || input.poll_gesture(&Gesture::QuitTrigger) {
+            if input.poll_gesture(&binding.exit) || input.poll_gesture(&Gesture::QuitTrigger) || state.quit {
                 *control_flow = ControlFlow::Exit;
             }
             if input.poll_gesture(&binding.fullscreen) {
@@ -317,11 +331,32 @@ fn main() {
                 tick_system.debug_tick_iteration();
                 tick_system.reset();
             }
-            // println!();
             tick_system.start_tick(TICK_FRAME_ID);
-        }
-        _ => input.update(&event),
+        },
+        _ => {
+            match &event {
+                Event::WindowEvent { event, .. } => {
+                    if egui.is_quit_event(&event) {
+                        *control_flow = glium::glutin::event_loop::ControlFlow::Exit;
+                    }
+                    egui.on_event(event)
+                },
+                _ => {}
+            }
+            input.update(&event);
+        },
     });
+}
+
+fn update_light_color(lights: &mut [PointLight; 4], state: &mut State) {
+    for i in 0..lights.len() {
+        let l = &mut lights[i];
+        let color = &state.light_bulb_color[i];
+        l.ambient = GVec3::new(color[0], color[1], color[2]);
+        l.ambient.data *= 0.1;
+        l.diffuse = GVec3::new(color[0], color[1], color[2]);
+        l.specular = GVec3::new(color[0], color[1], color[2]);
+    }
 }
 
 fn _rotate_camera_around_scene(camera: &mut Mat4, run_start: &Instant) {

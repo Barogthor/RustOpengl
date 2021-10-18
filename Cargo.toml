@@ -10,3 +10,4 @@ edition = "2018"
 math = { path = "./math" }
 graphics = { path = "./graphics" }
 ui = { path = "./ui" }
+debug-ui = { path = "./debug-ui" }
