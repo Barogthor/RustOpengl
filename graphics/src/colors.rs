@@ -1,5 +1,7 @@
 use math::rand;
 use math::rand::Rng;
+use glium::uniforms::{AsUniformValue, UniformValue};
+use crate::GVec3;
 
 #[derive(Clone, PartialOrd, PartialEq, Debug, Copy)]
 pub enum Colors {
@@ -73,5 +75,18 @@ impl From<Colors> for [f32; 4] {
     fn from(color: Colors) -> Self {
         let color = color.to_tuple();
         [color.0 as f32 / 255., color.1 as f32 / 255., color.2 as f32 / 255., color.3 as f32 / 255.]
+    }
+}
+impl From<Colors> for GVec3 {
+    fn from(color: Colors) -> Self {
+        let color = color.to_tuple();
+        GVec3::new(color.0 as f32 / 255., color.1 as f32 / 255., color.2 as f32 / 255.)
+    }
+}
+
+impl AsUniformValue for Colors {
+    fn as_uniform_value(&self) -> UniformValue<'_> {
+        let color = self.to_tuple();
+        UniformValue::Vec4([color.0 as f32 / 255., color.1 as f32 / 255., color.2 as f32 / 255., color.3 as f32 / 255.])
     }
 }

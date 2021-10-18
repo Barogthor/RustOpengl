@@ -1,18 +1,25 @@
 mod colors;
 mod vertex;
 mod texture;
+mod material;
+mod light;
+mod math_data;
+pub mod uniform;
 
 pub use colors::Colors;
 pub use glium;
 pub use vertex::*;
 pub use texture::*;
+pub use material::*;
+pub use light::*;
+pub use math_data::*;
 
 use glium::DrawParameters;
-use crate::vertex::VertexTex;
+use crate::vertex::VertexNorm;
 use std::fs::File;
 use std::io::Read;
 
-pub type Vertex = VertexTex;
+pub type Vertex = VertexNorm;
 
 pub fn load_glsl(path: &str) -> String {
     let mut nice_shader = String::new();
@@ -35,5 +42,4 @@ pub fn draw_params() -> DrawParameters<'static> {
         ..DrawParameters::default()
     }
 }
-
 

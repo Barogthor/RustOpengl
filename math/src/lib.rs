@@ -42,8 +42,8 @@ impl CameraSystem {
 impl Default for CameraSystem {
     fn default() -> Self {
         Self {
-            pos: glm::vec3(0.0, 0.0, -7.0),
-            front: glm::vec3(0.0, 0.0, 1.0),
+            pos: glm::vec3(4.0, 4.0, 2.0),
+            front: glm::vec3(-4.0, -4.0, -2.0),
             up: glm::vec3(0.0, 1.0, 0.0f32),
         }
     }
@@ -54,15 +54,6 @@ impl From<&CameraSystem> for glm::Mat4{
     }
 }
 
-
-pub fn get_camera() -> glm::Mat4 {
-    glm::look_at(
-        // &glm::vec3(10.0, 4.0, -1.0),
-        &glm::vec3(0.0, 0.0, 3.0),
-        &glm::vec3(0.0, 0.0, 2.0),
-        &glm::vec3(0.0, 1.0, 0.0f32),
-    )
-}
 
 pub struct Transform {
     transform: glm::Mat4,
@@ -79,8 +70,10 @@ impl Transform {
         self.transform = glm::scale(&self.transform, &glm::vec3(x, y, z));
     }
 
-    pub fn move_to(&mut self, _x: f32, _y: f32, _z: f32) {
-        unimplemented!()
+    pub fn move_to(&mut self, x: f32, y: f32, z: f32) {
+        self.transform.m14 = x;
+        self.transform.m24 = y;
+        self.transform.m34 = z;
     }
 
     pub fn translate(&mut self, x: f32, y: f32, z: f32){

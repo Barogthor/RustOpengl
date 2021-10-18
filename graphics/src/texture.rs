@@ -36,3 +36,16 @@ pub fn load_jpeg_texture(
         .to_rgba8();
     load_texture(image, display)
 }
+
+pub fn load_tif_texture(
+    file_path: &str,
+    display: &Display,
+) -> Result<glium::texture::Texture2d, ()> {
+    let file = File::open(file_path).unwrap();
+    let buffer = BufReader::new(file);
+
+    let image = image::load(buffer, image::ImageFormat::Tiff)
+        .unwrap()
+        .to_rgba8();
+    load_texture(image, display)
+}

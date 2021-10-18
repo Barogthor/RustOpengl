@@ -243,6 +243,7 @@ pub struct Binding {
     pub fullscreen: Gesture,
     pub scroll: Analog2d,
     pub toggle_mouse: Gesture,
+    pub toggle_torch_light: Gesture,
     pub swap_color: Gesture,
 }
 
@@ -267,7 +268,7 @@ impl Binding {
                     Gesture::KeyHold(Key::S),
                     Gesture::KeyHold(Key::Down),
                 ]),
-                step: 0.015,
+                step: 0.15,
             },
             look: Analog2d::Mouse { sensitivity: 0.015 },
             jump: Gesture::KeyHold(Key::Space),
@@ -275,6 +276,7 @@ impl Binding {
             fullscreen: Gesture::KeyTrigger(Key::F),
             scroll: Analog2d::MouseWheel { sensitivity: 0.030 },
             toggle_mouse: Gesture::ButtonHold(MouseButton::Right),
+            toggle_torch_light: Gesture::KeyTrigger(Key::T),
             swap_color: Gesture::KeyTrigger(Key::R),
         }
     }
