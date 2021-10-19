@@ -15,7 +15,7 @@ pub fn load_png_texture(
     file_path: &str,
     display: &Display,
 ) -> Result<glium::texture::Texture2d, ()> {
-    let file = File::open(file_path).unwrap();
+    let file = File::open(file_path).expect(&format!("failed to load file : {}", file_path));
     let buffer = BufReader::new(file);
 
     let image = image::load(buffer, image::ImageFormat::Png)
@@ -28,7 +28,7 @@ pub fn load_jpeg_texture(
     file_path: &str,
     display: &Display,
 ) -> Result<glium::texture::Texture2d, ()> {
-    let file = File::open(file_path).unwrap();
+    let file = File::open(file_path).expect(&format!("failed to load file : {}", file_path));
     let buffer = BufReader::new(file);
 
     let image = image::load(buffer, image::ImageFormat::Jpeg)
@@ -41,7 +41,7 @@ pub fn load_tif_texture(
     file_path: &str,
     display: &Display,
 ) -> Result<glium::texture::Texture2d, ()> {
-    let file = File::open(file_path).unwrap();
+    let file = File::open(file_path).expect(&format!("failed to load file : {}", file_path));
     let buffer = BufReader::new(file);
 
     let image = image::load(buffer, image::ImageFormat::Tiff)

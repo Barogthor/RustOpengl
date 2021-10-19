@@ -2,7 +2,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Instant;
 
 use debug_ui::EguiGlium;
-use graphics::{Colors, DirectionalLight, draw_params, glium, GVec3, load_glsl, load_png_texture, load_tif_texture, Material, PointLight, SpotLight, Vertex};
+use graphics::{Colors, DirectionalLight, Draw, draw_params, glium, GVec3, load_glsl, load_jpeg_texture, load_png_texture, load_tif_texture, Material, PointLight, SpotLight, Vertex};
 use graphics::glium::glutin::dpi::{PhysicalPosition, PhysicalSize, Size};
 use graphics::glium::glutin::event::{Event, StartCause};
 use graphics::glium::glutin::event_loop::ControlFlow;
@@ -11,6 +11,7 @@ use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
 use graphics::glium::uniforms::AsUniformValue;
+use graphics::model::load_model_gltf;
 use graphics::uniform::{StructToUniform, UniformStorage};
 use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
@@ -58,6 +59,7 @@ fn main() {
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
+    let backpack_model = load_model_gltf("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
     let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
     let binding = Binding::create();
@@ -67,11 +69,18 @@ fn main() {
     let bricks_tex = load_png_texture("resources/textures/bricks.png", &display).unwrap();
     let rock_soil_albedo = load_tif_texture("resources/textures/TexturesCom_Rock_Soil_512_albedo.tif", &display).unwrap();
     let rock_soil_rough = load_tif_texture("resources/textures/TexturesCom_Rock_Soil_512_roughness.tif", &display).unwrap();
+    // let backpack_albedo = load_jpeg_texture("resources/models/survival_guitar_backpack_low_poly/textures/Scene_-_Root_baseColor.jpeg", &display).unwrap();
+    let backpack_albedo = load_jpeg_texture("resources/textures/1001_albedo.jpg", &display).unwrap();
+    // let backpack_rough = load_png_texture("resources/models/survival_guitar_backpack_low_poly/textures/Scene_-_Root_metallicRoughness.png", &display).unwrap();
+    let backpack_rough = load_jpeg_texture("resources/textures/1001_roughness.jpg", &display).unwrap();
+    // let backpack_normal = load_png_texture("resources/models/survival_guitar_backpack_low_poly/textures/Scene_-_Root_normal.png", &display).unwrap();
+    let backpack_normal = load_png_texture("resources/textures/1001_normal.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
     let container_diffuse = load_png_texture("resources/textures/container2.png", &display).unwrap();
     let container_specular = load_png_texture("resources/textures/container2_specular.png", &display).unwrap();
     let crate_mat = Material::new(container_diffuse, container_specular, 0.6);
     let rock_soil_mat = Material::new(rock_soil_albedo, rock_soil_rough, 1.);
+    let backpack_mat = Material::new(backpack_albedo, backpack_rough, 1.);
     // let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
         Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
@@ -89,6 +98,8 @@ fn main() {
         .build();
     let sample_vertex_src = load_glsl("resources/shaders/material_lightcaster.vs.glsl");
     let sample_fragment_src = load_glsl("resources/shaders/material_lightcaster_all.fs.glsl");
+    let model_vertex_src = load_glsl("resources/shaders/model.vs.glsl");
+    let model_fragment_src = load_glsl("resources/shaders/model.fs.glsl");
     let lighting_vertex_src = load_glsl("resources/shaders/lighting.vs.glsl");
     let lighting_fragment_src = load_glsl("resources/shaders/lighting.fs.glsl");
     let lighting_program =
@@ -96,6 +107,9 @@ fn main() {
             .unwrap();
     let sample_program =
         glium::Program::from_source(&display, &sample_vertex_src, &sample_fragment_src, None)
+            .unwrap();
+    let model_program =
+        glium::Program::from_source(&display, &model_vertex_src, &model_fragment_src, None)
             .unwrap();
     let cube_vertexes = VertexBuffer::new(&display, &cube_vertexes_2d()).unwrap();
     let cube_indexes = IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &cube_indexes()).unwrap();
@@ -111,6 +125,7 @@ fn main() {
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
+    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.01, 0.01, 0.01).build();
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
     let (mut w, mut h) = (display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1);
@@ -246,6 +261,23 @@ fn main() {
                 }
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
+            {
+                let model = backpack_transform.get_raw();
+                let mut my_storage = UniformStorage::default();
+                my_storage.add("vp", pre_vp.as_uniform_value());
+                my_storage.add("view", view.as_uniform_value());
+                my_storage.add("model", model.as_uniform_value());
+                my_storage.add("viewPos", view_pos.as_uniform_value());
+                my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
+                dir_light.as_uniform("dirLight", &mut my_storage);
+                light_spot.as_uniform("spotLight", &mut my_storage);
+                backpack_mat.as_uniform("material", &mut my_storage);
+                for (i, lp) in light_points.iter().enumerate() {
+                    lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
+                }
+                backpack_model.draw(&mut frame, &model_program, &my_storage, &draw_params);
+            }
+
 
             tick_system.start_tick(TICK_RENDER_EGUI_ID);
             egui.paint(&display, &mut frame, shapes);

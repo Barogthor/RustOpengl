@@ -5,6 +5,7 @@ mod material;
 mod light;
 mod math_data;
 pub mod uniform;
+pub mod model;
 
 pub use colors::Colors;
 pub use glium;
@@ -14,10 +15,12 @@ pub use material::*;
 pub use light::*;
 pub use math_data::*;
 
-use glium::DrawParameters;
+use glium::{DrawParameters, Program};
 use crate::vertex::VertexNorm;
 use std::fs::File;
 use std::io::Read;
+use crate::glium::Frame;
+use crate::glium::uniforms::Uniforms;
 
 pub type Vertex = VertexNorm;
 
@@ -41,5 +44,9 @@ pub fn draw_params() -> DrawParameters<'static> {
         backface_culling: BackfaceCullingMode::CullClockwise,
         ..DrawParameters::default()
     }
+}
+
+pub trait Draw {
+    fn draw<U>(&self, frame: &mut Frame, program: &Program, uniforms: &U, parameters: &DrawParameters<'_>) where U : Uniforms;
 }
 

@@ -51,6 +51,13 @@ impl VertexNorm {
             tex_coords,
         }
     }
+    pub fn from(position: [f32; 3], normal: [f32; 3], tex_coords: [f32; 2]) -> Self {
+        Self {
+            position,
+            normal,
+            tex_coords,
+        }
+    }
 }
 
 glium::implement_vertex!(VertexNorm, position, normal, tex_coords);
