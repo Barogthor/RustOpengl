@@ -90,6 +90,11 @@ impl Transform {
     pub fn get_raw(&self) -> RawMat4 {
         self.transform.clone().into()
     }
+    pub fn from(mat: glm::Mat4) -> Self {
+        Self {
+            transform: mat
+        }
+    }
 }
 
 impl From<&Transform> for RawMat4 {

@@ -25,7 +25,6 @@ pub type LoopType = glium::glutin::event_loop::EventLoop<()>;
 pub type VertexBuffer = glium::VertexBuffer<Vertex>;
 pub type IndexBuffer = glium::IndexBuffer<u16>;
 
-const CAMERA_SPEED: f32 = 10.;
 const PITCH_MAX: f32 = 1.55334f32;
 const WIDTH: f32 = 1366f32;
 const HEIGHT: f32 = 768f32;
@@ -44,6 +43,8 @@ fn to_radians(degree: f32) -> f32 {
 }
 
 fn main() {
+    // load_model_assimp("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx");
+    let mut camera_speed = 15f32;
     let z_axis = vec3(0.0, 0.0, 1.0f32);
     let y_axis = vec3(0.0, 1.0, 0.0f32);
     let x_axis = vec3(1.0, 0.0, 0.0f32);
@@ -278,7 +279,6 @@ fn main() {
                 backpack_model.draw(&mut frame, &model_program, &my_storage, &draw_params);
             }
 
-
             tick_system.start_tick(TICK_RENDER_EGUI_ID);
             egui.paint(&display, &mut frame, shapes);
             tick_system.end_tick(TICK_RENDER_EGUI_ID);
@@ -335,7 +335,9 @@ fn main() {
             if input.poll_gesture(&binding.swap_color) {
                 uniform_color = Colors::random();
             }
-
+            if input.poll_gesture(&binding.speedup) { camera_speed += 5.; }
+            if input.poll_gesture(&binding.speeddown) && camera_speed > 5. { camera_speed -= 5.; }
+            // println!("camera speed : {}", camera_speed);
             // rotate_camera_around_scene(&mut camera, &before_run);
 
             pre_vp = (perspective.get() * camera.view()).into();
@@ -343,11 +345,11 @@ fn main() {
             if let Some(duration) = tick_system.duration_since_frame_start() {
                 let step = input.poll_analog2d(&binding.movement);
                 if step.y != 0. {
-                    camera.pos += camera.front * step.y * CAMERA_SPEED * (duration as f32);
+                    camera.pos += camera.front * step.y * camera_speed * (duration as f32);
                     light_spot.position.data = camera.pos.clone();
                 }
                 if step.x != 0. {
-                    camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * CAMERA_SPEED * (duration as f32);
+                    camera.pos += normalize(&cross(&camera.front, &camera.up)) * step.x * camera_speed * (duration as f32);
                     light_spot.position.data = camera.pos.clone();
                 }
                 // rotate_light_around_scene(&mut light_position, duration as f32);

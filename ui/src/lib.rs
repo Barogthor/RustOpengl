@@ -245,6 +245,8 @@ pub struct Binding {
     pub toggle_mouse: Gesture,
     pub toggle_torch_light: Gesture,
     pub swap_color: Gesture,
+    pub speedup: Gesture,
+    pub speeddown: Gesture
 }
 
 impl Binding {
@@ -278,6 +280,8 @@ impl Binding {
             toggle_mouse: Gesture::ButtonHold(MouseButton::Right),
             toggle_torch_light: Gesture::KeyTrigger(Key::T),
             swap_color: Gesture::KeyTrigger(Key::R),
+            speedup: Gesture::KeyTrigger(Key::NumpadAdd),
+            speeddown: Gesture::KeyTrigger(Key::NumpadSubtract)
         }
     }
 }
