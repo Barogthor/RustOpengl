@@ -11,9 +11,9 @@ use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
 use graphics::glium::uniforms::AsUniformValue;
-use graphics::model::{load_model_gltf, load_model_assimp, Model};
+use graphics::model::{load_model_assimp, load_model_gltf, Model};
 use graphics::uniform::{StructToUniform, UniformStorage};
-use math::{CameraSystem, Perspective, RawMat4, TransformBuilder, Transform};
+use math::{CameraSystem, Perspective, RawMat4, Transform, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{show_window, State};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes_2d};
@@ -137,7 +137,7 @@ fn main() {
     ];
     // let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.01, 0.01, 0.01).build();
     let rubiks_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.1, 0.1, 0.1).build();
-    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.8, 0.8, 0.8).build();
+    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.008, 0.008, 0.008).build();
     let backpack_transform_inv = {
         let matrix = backpack_transform.get().clone_owned();
         let matrix = math::glm::inverse_transpose(matrix);
@@ -281,10 +281,12 @@ fn main() {
             }
             {
                 let model = backpack_transform.get_raw();
+                let model_inv = backpack_transform_inv.get_raw();
                 let mut my_storage = UniformStorage::default();
                 my_storage.add("vp", pre_vp.as_uniform_value());
                 my_storage.add("view", view.as_uniform_value());
                 my_storage.add("model", model.as_uniform_value());
+                my_storage.add("model_inv", model_inv.as_uniform_value());
                 my_storage.add("viewPos", view_pos.as_uniform_value());
                 my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
                 dir_light.as_uniform("dirLight", &mut my_storage);

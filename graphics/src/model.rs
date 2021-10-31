@@ -27,7 +27,7 @@ impl Mesh {
     }
 }
 
-fn convert_matrix4_to_glm(m: aiMat4) -> Mat4 {
+fn convert_matrix4_to_glm(m: &aiMat4) -> Mat4 {
     Mat4::from([[m.a1, m.a2, m.a3, m.a4], [m.b1, m.b2, m.b3, m.b4], [m.c1, m.c2, m.c3, m.c4], [m.d1, m.d2, m.d3, m.d4]])
 }
 
@@ -41,7 +41,7 @@ impl Model {
         }
     }
 
-    fn process_mesh(&mut self, mesh: &aiMesh, scene: &aiScene, node: &Rc<RefCell<aiNode>>, display: &Display) -> Mesh {
+    fn process_mesh(&mut self, mesh: &aiMesh, scene: &aiScene, transform: &Mat4, display: &Display) -> Mesh {
         let mut vertices= vec![];
         let mut indices = vec![];
         let ai_uvs = mesh.texture_coords[0].as_ref();
@@ -50,13 +50,13 @@ impl Model {
                 let ai_vertice = mesh.vertices[i];
                 let ai_normal = mesh.normals[i];
                 let ai_uv = ai_uvs_first[i];
-                let t = node.borrow().transformation;
+                let t = transform;
                 let old_x = ai_vertice.x;
                 let old_y = ai_vertice.y;
                 let old_z = ai_vertice.z;
-                let new_x = old_x * t.a1 + old_y * t.a2 + old_z * t.a3 + t.a4;
-                let new_y = old_x * t.b1 + old_y * t.b2 + old_z * t.b3 + t.b4;
-                let new_z = old_x * t.c1 + old_y * t.c2 + old_z * t.c3 + t.c4;
+                let new_x = old_x * t.m11 + old_y * t.m21 + old_z * t.m31 + t.m41;
+                let new_y = old_x * t.m12 + old_y * t.m22 + old_z * t.m32 + t.m42;
+                let new_z = old_x * t.m13 + old_y * t.m23 + old_z * t.m33 + t.m43;
                 // println!("({}) {:?}", i, [old_x, old_y, old_z] );
                 vertices.push(Vertex::from([new_x, new_y, new_z], [ai_normal.x, ai_normal.y, ai_normal.z], [ai_uv.x, ai_uv.y]));
             }
@@ -78,16 +78,29 @@ impl Model {
         Mesh::from(vertices, indices, display)
     }
 
-    fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene ,display: &Display) {
-        for v in &scene.meshes[0].vertices {
-        }
+    fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, parent_transform: &Mat4, display: &Display) {
+        let node_b = &node.borrow();
+        let transform = parent_transform * convert_matrix4_to_glm(&node_b.transformation);
         for meshId in &node.borrow().meshes {
-            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, node, display);
+            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
         }
         for childNode in &node.borrow().children {
-            self.process_node(childNode, scene, display);
+            self.process_node(childNode, scene, &transform, display);
+        }
+    }
+
+    fn process_root_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, display: &Display) {
+        let node_b = &node.borrow();
+        let transform = convert_matrix4_to_glm(&node_b.transformation);
+        for meshId in &node.borrow().meshes {
+            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
+            // println!("{:?}", proc_mesh);
+            self.meshes.push(proc_mesh);
+        }
+        for childNode in &node.borrow().children {
+            self.process_node(childNode, scene, &transform, display);
         }
     }
 
@@ -109,8 +122,7 @@ impl Model {
         let scene = aiScene::from_file(path,
                                        process_steps).unwrap();
         if let Some(root) = &scene.root {
-            let root_transform = root.borrow().transformation;
-            model.process_node(root, &scene, display);
+            model.process_root_node(root, &scene, display);
         }
         println!("mesh count: {}", model.meshes.len());
         model

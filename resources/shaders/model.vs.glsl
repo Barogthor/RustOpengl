@@ -10,11 +10,12 @@ out vec2 texCoords;
 
 uniform mat4 vp;
 uniform mat4 model;
+uniform mat4 model_inv;
 
 void main() {
     gl_Position = vp * model * vec4(position, 1.0);
     fragPos = vec3(model * vec4(position, 1.0));
     texCoords = tex_coords;
-    oNormal = mat3(transpose(inverse(model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
-//    oNormal = mat3(((model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
+    //    oNormal = mat3(transpose(inverse(model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
+    oNormal = mat3(((model_inv))) * normal;// normal matrix costly, should calculate on cpu and use uniform
 }
