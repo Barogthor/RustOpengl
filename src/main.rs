@@ -11,9 +11,9 @@ use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
 use graphics::glium::uniforms::AsUniformValue;
-use graphics::model::load_model_gltf;
+use graphics::model::{load_model_gltf, load_model_assimp, Model};
 use graphics::uniform::{StructToUniform, UniformStorage};
-use math::{CameraSystem, Perspective, RawMat4, TransformBuilder};
+use math::{CameraSystem, Perspective, RawMat4, TransformBuilder, Transform};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
 use rust_opengl::{show_window, State};
 use rust_opengl::geometry::cube::{cube_indexes, cube_vertexes_2d};
@@ -60,7 +60,13 @@ fn main() {
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let backpack_model = load_model_gltf("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
+    let rubiks_model = Model::load_model("resources/models/rubiks_cube/scene.gltf", &display, false);
+    // let rubiks_model = load_model_assimp("resources/models/rubiks_cube/scene.gltf", &display);
+    // let backpack_model = load_model_gltf("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
+    // let backpack_model = load_model_assimp("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
+    let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, true);
+    // let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display);
+    // let backpack_model = load_model_assimp("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display);
     let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
     let binding = Binding::create();
@@ -77,11 +83,14 @@ fn main() {
     // let backpack_normal = load_png_texture("resources/models/survival_guitar_backpack_low_poly/textures/Scene_-_Root_normal.png", &display).unwrap();
     let backpack_normal = load_png_texture("resources/textures/1001_normal.png", &display).unwrap();
     let rubiks_tex = load_png_texture("resources/textures/rubiks cube.png", &display).unwrap();
+    let rubiks_model_diffuse = load_png_texture("resources/models/rubiks_cube/textures/material_0_diffuse.png", &display).unwrap();
+    let rubiks_model_gloss = load_png_texture("resources/models/rubiks_cube/textures/material_0_specularGlossiness.png", &display).unwrap();
     let container_diffuse = load_png_texture("resources/textures/container2.png", &display).unwrap();
     let container_specular = load_png_texture("resources/textures/container2_specular.png", &display).unwrap();
     let crate_mat = Material::new(container_diffuse, container_specular, 0.6);
     let rock_soil_mat = Material::new(rock_soil_albedo, rock_soil_rough, 1.);
     let backpack_mat = Material::new(backpack_albedo, backpack_rough, 1.);
+    let rubiks_mat = Material::new(rubiks_model_diffuse, rubiks_model_gloss, 1.);
     // let ruby = Material::new(GVec3::new(0.1745, 0.01175, 0.01175), GVec3::new(0.61424, 0.04136, 0.04136), GVec3::new(0.727811, 0.626959, 0.626959), 0.6);
     let square = [
         Vertex::new(0.0, 0.0, 0.0, [0.0, 0.0, 1.0], [1.0, 0.0]),
@@ -126,7 +135,15 @@ fn main() {
         TransformBuilder::new().translate(1.5, 0.2, -1.5).rotate(to_radians(310.), &z_axis).build(),
         TransformBuilder::new().translate(-1.3, 1.0, -1.5).build(),
     ];
-    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.01, 0.01, 0.01).build();
+    // let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.01, 0.01, 0.01).build();
+    let rubiks_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.1, 0.1, 0.1).build();
+    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.8, 0.8, 0.8).build();
+    let backpack_transform_inv = {
+        let matrix = backpack_transform.get().clone_owned();
+        let matrix = math::glm::inverse_transpose(matrix);
+        Transform::from(matrix)
+    };
+
     let mut uniform_color = Colors::MAGENTA;
     let mut camera = CameraSystem::default();
     let (mut w, mut h) = (display.get_framebuffer_dimensions().0, display.get_framebuffer_dimensions().1);

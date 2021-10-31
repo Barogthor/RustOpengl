@@ -16,4 +16,5 @@ void main() {
     fragPos = vec3(model * vec4(position, 1.0));
     texCoords = tex_coords;
     oNormal = mat3(transpose(inverse(model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
+//    oNormal = mat3(((model))) * normal;// normal matrix costly, should calculate on cpu and use uniform
 }
