@@ -61,12 +61,9 @@ fn main() {
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
     let rubiks_model = Model::load_model("resources/models/rubiks_cube/scene.gltf", &display, false);
-    // let rubiks_model = load_model_assimp("resources/models/rubiks_cube/scene.gltf", &display);
-    // let backpack_model = load_model_gltf("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
     // let backpack_model = load_model_assimp("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
     let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, true);
-    // let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display);
-    // let backpack_model = load_model_assimp("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display);
+    // let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display, false);
     let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
     let binding = Binding::create();

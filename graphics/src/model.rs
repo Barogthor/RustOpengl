@@ -65,7 +65,14 @@ impl Model {
             for i in 0..mesh.vertices.len() {
                 let ai_vertice = mesh.vertices[i];
                 let ai_normal = mesh.normals[i];
-                vertices.push(Vertex::from([ai_vertice.x, ai_vertice.y, ai_vertice.z], [ai_normal.x, ai_normal.y, ai_normal.z], [0.0, 0.0]));
+                let t = transform;
+                let old_x = ai_vertice.x;
+                let old_y = ai_vertice.y;
+                let old_z = ai_vertice.z;
+                let new_x = old_x * t.m11 + old_y * t.m21 + old_z * t.m31 + t.m41;
+                let new_y = old_x * t.m12 + old_y * t.m22 + old_z * t.m32 + t.m42;
+                let new_z = old_x * t.m13 + old_y * t.m23 + old_z * t.m33 + t.m43;
+                vertices.push(Vertex::from([new_x, new_y, new_z], [ai_normal.x, ai_normal.y, ai_normal.z], [0.0, 0.0]));
             }
         }
         for ai_face in &mesh.faces {
@@ -81,7 +88,7 @@ impl Model {
     fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, parent_transform: &Mat4, display: &Display) {
         let node_b = &node.borrow();
         let transform = parent_transform * convert_matrix4_to_glm(&node_b.transformation);
-        for meshId in &node.borrow().meshes {
+        for meshId in &node_b.meshes {
             let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
@@ -94,7 +101,7 @@ impl Model {
     fn process_root_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, display: &Display) {
         let node_b = &node.borrow();
         let transform = convert_matrix4_to_glm(&node_b.transformation);
-        for meshId in &node.borrow().meshes {
+        for meshId in &node_b.meshes {
             let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
