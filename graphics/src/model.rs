@@ -1,16 +1,19 @@
-use crate::{Vertex, Draw};
+use crate::{Vertex, Draw, PbrMaterial, load_texture};
 use std::io::{BufReader, Error};
 use std::fs::File;
 use crate::glium::{Display, IndexBuffer, VertexBuffer, Frame, Program, DrawParameters, Surface};
 use crate::glium::uniforms::Uniforms;
 use russimp::scene::{Scene as aiScene, PostProcess};
-use russimp::texture::TextureType;
+use russimp::texture::{TextureType as aiTextureType, DataContent};
 use russimp::node::Node as aiNode;
 use russimp::mesh::Mesh as aiMesh;
 use std::rc::Rc;
 use std::cell::RefCell;
 use russimp::Matrix4x4 as aiMat4;
 use math::glm::Mat4;
+use std::collections::HashMap;
+use russimp::material::Material as aiMaterial;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Mesh {
@@ -32,16 +35,83 @@ fn convert_matrix4_to_glm(m: &aiMat4) -> Mat4 {
 }
 
 pub struct Model {
-    meshes: Vec<Mesh>
+    directory: String,
+    meshes: Vec<Mesh>,
 }
 impl Model {
-    pub fn new() -> Self {
+    pub fn new(meshes: Vec<Mesh>) -> Self {
         Model {
-            meshes: vec![]
+            directory: "".to_string(),
+            meshes
         }
     }
 
-    fn process_mesh(&mut self, mesh: &aiMesh, scene: &aiScene, transform: &Mat4, display: &Display) -> Mesh {
+}
+impl Draw for Model{
+    fn draw<U>(&self, frame: &mut Frame, program: &Program, uniforms: &U, parameters: &DrawParameters<'_>) where U: Uniforms {
+        for mesh in &self.meshes {
+            frame.draw(&mesh.vertex_buffer, &mesh.index_buffer, program, uniforms, parameters);
+        }
+    }
+}
+
+#[derive(Debug, Hash, Eq, PartialEq)]
+struct TextureMapKey(aiTextureType, u32);
+
+pub struct ModelLoader<'a> {
+    directory: String,
+    meshes: Vec<Mesh>,
+    mesh_textures_index: HashMap<u32, Vec<String>>,
+    // textures: HashMap<aiTextureType, HashMap<String, glium::texture::Texture2d>>,
+    textures: HashMap<TextureMapKey, HashMap<String, glium::texture::Texture2d>>,
+    display: &'a Display
+}
+
+impl<'a> ModelLoader<'a> {
+    fn new(display: &'a Display, directory: String) -> Self {
+        Self {
+            directory,
+            meshes: vec![],
+            mesh_textures_index: Default::default(),
+            textures: Default::default(),
+            display
+        }
+    }
+
+    fn get_path(&self, tex_path: &str) -> String {
+        format!("{}/{}", self.directory, tex_path)
+    }
+
+    fn process_material(&mut self, material: &aiMaterial, texture_type: aiTextureType, material_index: &u32) {
+        let ai_textures_opt = material.textures.get(&texture_type);
+        if let Some(ai_textures) = ai_textures_opt {
+            for tex in ai_textures {
+                let full_path = self.get_path(&tex.path);
+                let key = TextureMapKey(texture_type.clone(), *material_index);
+                if !self.textures.contains_key(&key) {
+                    let loaded_tex = load_texture(&full_path, self.display).unwrap();
+                    println!("[{:?}] path = {:?}", &key.0, tex.path);
+                    let mut new_hm = HashMap::new();
+                    new_hm.insert(full_path.clone(), loaded_tex);
+                    self.textures.insert(key, new_hm);
+                }
+                else if !self.textures.get(&key).unwrap().contains_key(&full_path) {
+                    let loaded_tex = load_texture(&full_path, self.display).unwrap();
+                    println!("[{:?}] path = {:?}", &texture_type, tex.path);
+                    self.textures.get_mut(&key).unwrap().insert(full_path.clone(), loaded_tex);
+                }
+                // if let Some(mesh_index) = self.mesh_textures_index.get_mut(&full_path) {
+                //     mesh_index.push(material_index);
+                // }
+                // else {
+                //     let vec = vec![mesh_name.clone()];
+                //     self.mesh_textures_index.insert(full_path, vec);
+                // }
+            }
+        }
+    }
+
+    fn process_mesh(&mut self, mesh: &aiMesh, scene: &aiScene, transform: &Mat4) -> Mesh {
         let mut vertices= vec![];
         let mut indices = vec![];
         let ai_uvs = mesh.texture_coords[0].as_ref();
@@ -80,39 +150,59 @@ impl Model {
             indices.push(ai_face.0[1]);
             indices.push(ai_face.0[2]);
         }
+        if mesh.material_index >= 0 {
+            let ai_mat = &scene.materials[mesh.material_index as usize];
+            // println!("textures types : {:?}", ai_mat.textures.keys());
+            // println!("material index : {:?}", mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Diffuse, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Specular, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Roughness, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Normals, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::AmbientOcclusion, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Displacement, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::LightMap, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Metalness, &mesh.material_index);
+            self.process_material(&ai_mat, aiTextureType::Height, &mesh.material_index);
+        }
         // println!("{:?}", vertices);
         // println!("[{}] -> {:?}", indices.len(), indices);
-        Mesh::from(vertices, indices, display)
+        Mesh::from(vertices, indices, self.display)
     }
 
-    fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, parent_transform: &Mat4, display: &Display) {
+    fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, parent_transform: &Mat4) {
         let node_b = &node.borrow();
         let transform = parent_transform * convert_matrix4_to_glm(&node_b.transformation);
         for meshId in &node_b.meshes {
-            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
+            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
         }
         for childNode in &node.borrow().children {
-            self.process_node(childNode, scene, &transform, display);
+            self.process_node(childNode, scene, &transform);
         }
     }
 
-    fn process_root_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, display: &Display) {
+    fn process_root_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene) {
         let node_b = &node.borrow();
         let transform = convert_matrix4_to_glm(&node_b.transformation);
         for meshId in &node_b.meshes {
-            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform, display);
+            let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
         }
         for childNode in &node.borrow().children {
-            self.process_node(childNode, scene, &transform, display);
+            self.process_node(childNode, scene, &transform);
         }
     }
 
-    pub fn load_model(path: &str, display: &Display, flip_uv: bool) -> Self{
-        let mut model = Self::new();
+    pub fn load(path: &str, display: &'a Display, flip_uv: bool) -> (Model, PbrMaterial) {
+        let start = std::time::Instant::now();
+        let directory = Path::new(path)
+            .parent()
+            .map(|dir| dir.as_os_str())
+            .map(|dir| dir.to_os_string().into_string().unwrap())
+            .unwrap_or("".into());
+        let mut loader = Self::new(display, directory);
         let process_steps = if flip_uv {
             vec![PostProcess::CalculateTangentSpace,
                  PostProcess::Triangulate,
@@ -129,127 +219,43 @@ impl Model {
         let scene = aiScene::from_file(path,
                                        process_steps).unwrap();
         if let Some(root) = &scene.root {
-            model.process_root_node(root, &scene, display);
+            loader.process_root_node(root, &scene);
         }
+        let ModelLoader { meshes, mut textures, ..} = loader;
+        let material = {
+            let mut color_hm =
+                textures
+                    .remove( &TextureMapKey(aiTextureType::BaseColor, 0))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Diffuse, 0)))
+                    .unwrap();
+            let key = color_hm.iter().next().unwrap().0.clone();
+            let color = color_hm.remove(&key).unwrap();
+
+
+            let mut normal_hm =
+                textures
+                    .remove( &TextureMapKey(aiTextureType::Normals, 0))
+                    .unwrap();
+            let key = normal_hm.iter().next().unwrap().0.clone();
+            let normal = normal_hm.remove(&key).unwrap();
+
+            let mut reflection_hm =
+                textures
+                    .remove( &TextureMapKey(aiTextureType::Specular, 0))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Roughness, 0)))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::LightMap, 0)))
+                    .unwrap();
+            let key = reflection_hm.iter().next().unwrap().0.clone();
+            let reflection = reflection_hm.remove(&key).unwrap();
+
+            PbrMaterial::new(color, reflection, normal)
+        };
+        let model = Model::new(meshes);
         println!("mesh count: {}", model.meshes.len());
-        model
-    }
-}
-impl Draw for Model{
-    fn draw<U>(&self, frame: &mut Frame, program: &Program, uniforms: &U, parameters: &DrawParameters<'_>) where U: Uniforms {
-        for mesh in &self.meshes {
-            frame.draw(&mesh.vertex_buffer, &mesh.index_buffer, program, uniforms, parameters);
-        }
-    }
-}
-
-pub fn load_model_gltf(path : &str, display: &Display) -> Model{
-
-    let scenes = easy_gltf::load(path).expect(&format!("failed to load file : {}", path));
-    let mut model = Model::new();
-    // let mat = {
-    //     let pbr = &scenes[0].models[0].material().pbr;
-    //     let albedo = pbr.base_color_texture.unwrap().
-    // };
-    for raw_model in &scenes[0].models {
-        let mut v = vec![];
-        // println!("{:?}", raw_model.material().pbr.);
-        for vtx in raw_model.vertices() {
-            let pos = vtx.position;
-            let norm = vtx.normal;
-            let tex = vtx.tex_coords;
-            v.push(Vertex::from([pos.x, pos.y, pos.z], [norm.x, norm.y, norm.z], [tex.x, tex.y]))
-        }
-        let mut ids = vec![];
-        for idx in raw_model.indices().unwrap() {
-            ids.push((*idx) as u32);
-        }
-        model.meshes.push(Mesh::from(v, ids, display));
-    }
-    model
-}
-
-pub fn load_model_assimp(path: &str, display: &Display) -> Model {
-
-    let scene = aiScene::from_file(path,
-                                 vec![PostProcess::CalculateTangentSpace,
-                                      PostProcess::Triangulate,
-                                      PostProcess::JoinIdenticalVertices,
-                                      PostProcess::GenerateSmoothNormals,
-                                      // PostProcess::PreTransformVertices,
-                                      // PostProcess::FlipUVs,
-                                      PostProcess::SortByPrimitiveType]).unwrap();
-    if let Some(meta) = scene.metadata {
-        println!("meta datas : {:?}", meta.keys);
-    };
-    println!("count meshes : {}", scene.meshes.len());
-    println!("count materials : {}", scene.materials.len());
-    println!("count lights : {}", scene.lights.len());
-    println!("count cameras : {}", scene.cameras.len());
-    println!("count animations : {}", scene.animations.len());
-    let mut meshes = vec![];
-    for ai_mesh in scene.meshes {
-        // println!("mesh {} :", ai_mesh.name);
-        // println!("count vertices : {}", ai_mesh.vertices.len());
-        // println!("count uv : {}", ai_mesh.texture_coords[0].as_ref().unwrap().len());
-        // println!("count normals : {}", ai_mesh.normals.len());
-
-        let mut vertices= vec![];
-        let mut indices = vec![];
-        let ai_uvs = ai_mesh.texture_coords[0].as_ref();
-        if let Some(ai_uvs_first) = ai_uvs {
-            for i in 0..ai_mesh.vertices.len() {
-                let ai_vertice = ai_mesh.vertices[i];
-                let ai_normal = ai_mesh.normals[i];
-                let ai_uv = ai_uvs_first[i];
-                vertices.push(Vertex::from([ai_vertice.x, ai_vertice.y, ai_vertice.z], [ai_normal.x, ai_normal.y, ai_normal.z], [ai_uv.x, ai_uv.y]));
-            }
-        }
-        else {
-            for i in 0..ai_mesh.vertices.len() {
-                let ai_vertice = ai_mesh.vertices[i];
-                let ai_normal = ai_mesh.normals[i];
-                vertices.push(Vertex::from([ai_vertice.x, ai_vertice.y, ai_vertice.z], [ai_normal.x, ai_normal.y, ai_normal.z], [0.0, 0.0]));
-            }
-        }
-        for ai_face in ai_mesh.faces {
-            indices.push(ai_face.0[0]);
-            indices.push(ai_face.0[1]);
-            indices.push(ai_face.0[2]);
-        }
-
-        println!("{:?}", vertices[0]);
-        println!("{:?}", vertices[1]);
-        println!("{:?}", vertices[2]);
-        println!("{:?}", vertices[3]);
-        meshes.push(Mesh::from(vertices, indices, display));
-
-    }
-    for mat in &scene.materials {
-        println!("{:?}", mat);
-        break;
-        for textype in mat.textures.keys() {
-            match textype {
-                TextureType::Normals => println!("Normals"),
-                TextureType::Ambient => println!("Ambient"),
-                TextureType::AmbientOcclusion => println!("AmbientOcclusion"),
-                TextureType::BaseColor => println!("Albedo"),
-                TextureType::Diffuse => println!("Diffuse"),
-                TextureType::Emissive => println!("Emissive"),
-                TextureType::EmissionColor => println!("EmissionColor"),
-                TextureType::Displacement => println!("Displacement"),
-                TextureType::Height => println!("Height"),
-                TextureType::Specular => println!("Height"),
-                TextureType::Roughness => println!("Roughness"),
-                TextureType::Metalness => println!("Metalness"),
-                TextureType::Shininess => println!("Shininess"),
-                TextureType::Reflection => println!("Reflection"),
-                _ => println!("other")
-            }
-        }
-    }
-    println!("end import");
-    Model {
-        meshes
+        println!("material count: {}", scene.materials.len());
+        // loader.mesh_textures_index.
+        let end = std::time::Instant::now();
+        println!("model '{}' loaded in {}s", path, end.duration_since(start).as_secs_f64());
+        (model, material)
     }
 }

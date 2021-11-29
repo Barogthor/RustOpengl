@@ -6,6 +6,12 @@ struct Material {
     float shininess;
 };
 
+struct PbrMaterial {
+    sampler2D diffuse;
+    sampler2D normal;
+    sampler2D specular;
+};
+
 struct SpotLight {
     vec3 position;
     vec3 direction;
@@ -50,12 +56,14 @@ out vec4 FragColor;
 uniform vec3 viewPos;
 uniform bool toggleTorchLight;
 
-uniform Material material;
+uniform PbrMaterial material;
 uniform SpotLight spotLight;
 uniform DirectionLight dirLight;
 #define NR_POINT_LIGHTS 4
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 //uniform PointLight pointLight;
+
+float shininess = 32;
 
 vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 aFragPos, vec3 viewDir) {
     vec3 lightDir = normalize(light.position - aFragPos);
@@ -77,7 +85,7 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 aFragPos, vec3 viewDir) {
 
 
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
     vec3 specular = light.specular * spec * vec3(texture(material.specular, texCoords));
     //    vec3 specular = light.specular * spec * vec3(1.0);
 
@@ -105,7 +113,7 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 aFragPos, vec3 viewDir) 
     diffuse *= attenuation;
 
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
     vec3 specular = light.specular * spec * vec3(texture(material.specular, texCoords));
     //    vec3 specular = light.specular * spec * vec3(1.0);
     specular *= attenuation;
@@ -124,7 +132,7 @@ vec3 calcDirLight(DirectionLight light, vec3 normal, vec3 aFragPos, vec3 viewDir
     //    vec3 diffuse = light.diffuse * diff * vec3(1.0);
 
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
     vec3 specular = light.specular * spec * vec3(texture(material.specular, texCoords));
     //    vec3 specular = light.specular * spec * vec3(1.0);
 

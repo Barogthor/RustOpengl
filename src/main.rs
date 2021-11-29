@@ -11,7 +11,7 @@ use graphics::glium::glutin::window::WindowBuilder;
 use graphics::glium::Surface;
 use graphics::glium::uniform;
 use graphics::glium::uniforms::AsUniformValue;
-use graphics::model::{load_model_assimp, load_model_gltf, Model};
+use graphics::model::{Model, ModelLoader};
 use graphics::uniform::{StructToUniform, UniformStorage};
 use math::{CameraSystem, Perspective, RawMat4, Transform, TransformBuilder};
 use math::glm::{cross, look_at, Mat4, normalize, vec3};
@@ -60,9 +60,8 @@ fn main() {
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let rubiks_model = Model::load_model("resources/models/rubiks_cube/scene.gltf", &display, false);
-    // let backpack_model = load_model_assimp("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display);
-    let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, true);
+    let rubiks_model = ModelLoader::load("resources/models/rubiks_cube/scene.gltf", &display, false);
+    let (backpack_model, backpack_material) = ModelLoader::load("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, false);
     // let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display, false);
     let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
@@ -288,7 +287,7 @@ fn main() {
                 my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
                 dir_light.as_uniform("dirLight", &mut my_storage);
                 light_spot.as_uniform("spotLight", &mut my_storage);
-                backpack_mat.as_uniform("material", &mut my_storage);
+                backpack_material.as_uniform("material", &mut my_storage);
                 for (i, lp) in light_points.iter().enumerate() {
                     lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
                 }
