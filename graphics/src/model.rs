@@ -4,7 +4,7 @@ use std::fs::File;
 use crate::glium::{Display, IndexBuffer, VertexBuffer, Frame, Program, DrawParameters, Surface};
 use crate::glium::uniforms::Uniforms;
 use russimp::scene::{Scene as aiScene, PostProcess};
-use russimp::texture::{TextureType as aiTextureType, DataContent};
+use russimp::material::{TextureType as aiTextureType, DataContent};
 use russimp::node::Node as aiNode;
 use russimp::mesh::Mesh as aiMesh;
 use std::rc::Rc;
@@ -64,6 +64,7 @@ pub struct ModelLoader<'a> {
     mesh_textures_index: HashMap<u32, Vec<String>>,
     // textures: HashMap<aiTextureType, HashMap<String, glium::texture::Texture2d>>,
     textures: HashMap<TextureMapKey, HashMap<String, glium::texture::Texture2d>>,
+    current_mat_index: u32,
     display: &'a Display
 }
 
@@ -74,6 +75,7 @@ impl<'a> ModelLoader<'a> {
             meshes: vec![],
             mesh_textures_index: Default::default(),
             textures: Default::default(),
+            current_mat_index: 0,
             display
         }
     }
@@ -84,30 +86,24 @@ impl<'a> ModelLoader<'a> {
 
     fn process_material(&mut self, material: &aiMaterial, texture_type: aiTextureType, material_index: &u32) {
         let ai_textures_opt = material.textures.get(&texture_type);
-        if let Some(ai_textures) = ai_textures_opt {
-            for tex in ai_textures {
-                let full_path = self.get_path(&tex.path);
+        if let Some(ai_texture) = ai_textures_opt {
+            // for tex in ai_textures {
+                let tex = ai_texture.borrow();
+                let full_path = self.get_path(&tex.filename);
                 let key = TextureMapKey(texture_type.clone(), *material_index);
                 if !self.textures.contains_key(&key) {
                     let loaded_tex = load_texture(&full_path, self.display).unwrap();
-                    println!("[{:?}] path = {:?}", &key.0, tex.path);
+                    println!("[{}] [{:?}] path = {:?}",material_index, &key.0, tex.filename);
                     let mut new_hm = HashMap::new();
                     new_hm.insert(full_path.clone(), loaded_tex);
                     self.textures.insert(key, new_hm);
                 }
                 else if !self.textures.get(&key).unwrap().contains_key(&full_path) {
                     let loaded_tex = load_texture(&full_path, self.display).unwrap();
-                    println!("[{:?}] path = {:?}", &texture_type, tex.path);
+                    println!("[{}] [{:?}] path = {:?}",material_index ,&texture_type, tex.filename);
                     self.textures.get_mut(&key).unwrap().insert(full_path.clone(), loaded_tex);
                 }
-                // if let Some(mesh_index) = self.mesh_textures_index.get_mut(&full_path) {
-                //     mesh_index.push(material_index);
-                // }
-                // else {
-                //     let vec = vec![mesh_name.clone()];
-                //     self.mesh_textures_index.insert(full_path, vec);
-                // }
-            }
+            // }
         }
     }
 
@@ -152,8 +148,9 @@ impl<'a> ModelLoader<'a> {
         }
         if mesh.material_index >= 0 {
             let ai_mat = &scene.materials[mesh.material_index as usize];
-            // println!("textures types : {:?}", ai_mat.textures.keys());
+            println!("textures types : {:?}", ai_mat.textures.keys());
             // println!("material index : {:?}", mesh.material_index);
+            self.current_mat_index = mesh.material_index;
             self.process_material(&ai_mat, aiTextureType::Diffuse, &mesh.material_index);
             self.process_material(&ai_mat, aiTextureType::Specular, &mesh.material_index);
             self.process_material(&ai_mat, aiTextureType::Roughness, &mesh.material_index);
@@ -169,28 +166,28 @@ impl<'a> ModelLoader<'a> {
         Mesh::from(vertices, indices, self.display)
     }
 
-    fn process_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene, parent_transform: &Mat4) {
-        let node_b = &node.borrow();
+    fn process_node(&mut self, node: &Rc<aiNode>, scene: &aiScene, parent_transform: &Mat4) {
+        let node_b = node;
         let transform = parent_transform * convert_matrix4_to_glm(&node_b.transformation);
         for meshId in &node_b.meshes {
             let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
         }
-        for childNode in &node.borrow().children {
+        for childNode in node_b.children.borrow().iter() {
             self.process_node(childNode, scene, &transform);
         }
     }
 
-    fn process_root_node(&mut self, node: &Rc<RefCell<aiNode>>, scene: &aiScene) {
-        let node_b = &node.borrow();
+    fn process_root_node(&mut self, node: &Rc<aiNode>, scene: &aiScene) {
+        let node_b = node;
         let transform = convert_matrix4_to_glm(&node_b.transformation);
         for meshId in &node_b.meshes {
             let proc_mesh = self.process_mesh(&scene.meshes[*meshId as usize], scene, &transform);
             // println!("{:?}", proc_mesh);
             self.meshes.push(proc_mesh);
         }
-        for childNode in &node.borrow().children {
+        for childNode in node.children.borrow().iter() {
             self.process_node(childNode, scene, &transform);
         }
     }
@@ -221,12 +218,12 @@ impl<'a> ModelLoader<'a> {
         if let Some(root) = &scene.root {
             loader.process_root_node(root, &scene);
         }
-        let ModelLoader { meshes, mut textures, ..} = loader;
+        let ModelLoader { meshes, mut textures, current_mat_index, .. } = loader;
         let material = {
             let mut color_hm =
                 textures
-                    .remove( &TextureMapKey(aiTextureType::BaseColor, 0))
-                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Diffuse, 0)))
+                    .remove( &TextureMapKey(aiTextureType::BaseColor, current_mat_index))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Diffuse, current_mat_index)))
                     .unwrap();
             let key = color_hm.iter().next().unwrap().0.clone();
             let color = color_hm.remove(&key).unwrap();
@@ -234,16 +231,18 @@ impl<'a> ModelLoader<'a> {
 
             let mut normal_hm =
                 textures
-                    .remove( &TextureMapKey(aiTextureType::Normals, 0))
+                    .remove( &TextureMapKey(aiTextureType::Normals, current_mat_index))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Height, current_mat_index)))
                     .unwrap();
             let key = normal_hm.iter().next().unwrap().0.clone();
             let normal = normal_hm.remove(&key).unwrap();
 
             let mut reflection_hm =
                 textures
-                    .remove( &TextureMapKey(aiTextureType::Specular, 0))
-                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Roughness, 0)))
-                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::LightMap, 0)))
+                    .remove( &TextureMapKey(aiTextureType::Specular, current_mat_index))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Roughness, current_mat_index)))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::Shininess, current_mat_index)))
+                    .or_else(|| textures.remove(&TextureMapKey(aiTextureType::LightMap, current_mat_index)))
                     .unwrap();
             let key = reflection_hm.iter().next().unwrap().0.clone();
             let reflection = reflection_hm.remove(&key).unwrap();

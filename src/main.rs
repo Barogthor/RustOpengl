@@ -60,8 +60,9 @@ fn main() {
         .with_inner_size(Size::Physical(PhysicalSize::new(WIDTH as u32, HEIGHT as u32)));
     let cb = glium::glutin::ContextBuilder::new().with_gl_profile(GlProfile::Core);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let rubiks_model = ModelLoader::load("resources/models/rubiks_cube/scene.gltf", &display, false);
-    let (backpack_model, backpack_material) = ModelLoader::load("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, false);
+    // let rubiks_model = ModelLoader::load("resources/models/rubiks_cube/scene.gltf", &display, false);
+    // let (backpack_model, backpack_material) = ModelLoader::load("resources/models/survival_guitar_backpack_low_poly/scene.gltf", &display, false);
+    // let (backpack_model, backpack_material) = ModelLoader::load("resources/models/survival_guitar_backpack_low_poly_fbx/source/survival_guitar_backpack_low_poly.obj", &display, false);
     // let backpack_model = Model::load_model("resources/models/survival_guitar_backpack_low_poly_fbx/source/Survival_BackPack_2.fbx", &display, false);
     let mut egui = EguiGlium::new(&display);
     let mut input = Input::create();
@@ -133,7 +134,8 @@ fn main() {
     ];
     // let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.01, 0.01, 0.01).build();
     let rubiks_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.1, 0.1, 0.1).build();
-    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.008, 0.008, 0.008).build();
+    // let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.008, 0.008, 0.008).build();
+    let backpack_transform = TransformBuilder::new().translate(-4.7, 1.0, -8.5).scale(0.8, 0.8, 0.8).build();
     let backpack_transform_inv = {
         let matrix = backpack_transform.get().clone_owned();
         let matrix = math::glm::inverse_transpose(matrix);
@@ -275,24 +277,24 @@ fn main() {
                 }
                 frame.draw(&cube_vertexes, &cube_indexes, &sample_program, &my_storage, &draw_params).unwrap();
             }
-            {
-                let model = backpack_transform.get_raw();
-                let model_inv = backpack_transform_inv.get_raw();
-                let mut my_storage = UniformStorage::default();
-                my_storage.add("vp", pre_vp.as_uniform_value());
-                my_storage.add("view", view.as_uniform_value());
-                my_storage.add("model", model.as_uniform_value());
-                my_storage.add("model_inv", model_inv.as_uniform_value());
-                my_storage.add("viewPos", view_pos.as_uniform_value());
-                my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
-                dir_light.as_uniform("dirLight", &mut my_storage);
-                light_spot.as_uniform("spotLight", &mut my_storage);
-                backpack_material.as_uniform("material", &mut my_storage);
-                for (i, lp) in light_points.iter().enumerate() {
-                    lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
-                }
-                backpack_model.draw(&mut frame, &model_program, &my_storage, &draw_params);
-            }
+            // {
+            //     let model = backpack_transform.get_raw();
+            //     let model_inv = backpack_transform_inv.get_raw();
+            //     let mut my_storage = UniformStorage::default();
+            //     my_storage.add("vp", pre_vp.as_uniform_value());
+            //     my_storage.add("view", view.as_uniform_value());
+            //     my_storage.add("model", model.as_uniform_value());
+            //     my_storage.add("model_inv", model_inv.as_uniform_value());
+            //     my_storage.add("viewPos", view_pos.as_uniform_value());
+            //     my_storage.add("toggleTorchLight", toggle_torchlight.as_uniform_value());
+            //     dir_light.as_uniform("dirLight", &mut my_storage);
+            //     light_spot.as_uniform("spotLight", &mut my_storage);
+            //     backpack_material.as_uniform("material", &mut my_storage);
+            //     for (i, lp) in light_points.iter().enumerate() {
+            //         lp.as_uniform(&format!("pointLights[{}]", i), &mut my_storage);
+            //     }
+            //     backpack_model.draw(&mut frame, &model_program, &my_storage, &draw_params);
+            // }
 
             tick_system.start_tick(TICK_RENDER_EGUI_ID);
             egui.paint(&display, &mut frame, shapes);
