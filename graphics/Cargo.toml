@@ -11,5 +11,5 @@ ui = { path = "../ui" }
 math = { path = "../math" }
 glium = "0.30.2"
 rusttype = "0.9.2"
-image = "0.23.14"
+image = "0.24.6"
 russimp = { version = "2.0.5", features = ["prebuilt"] }
